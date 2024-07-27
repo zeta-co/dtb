@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+        spark-version: [3.3.4, 3.4.3, 3.5.1]
+        include:
+          - spark-version: 3.3.4
+            delta-version: 2.3.0
+          - spark-version: 3.4.3
+            delta-version: 2.4.0
+          - spark-version: 3.5.1
+            delta-version: 3.2.0
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run tests
+      run: docker run --rm -v $(pwd):/app zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-deltdelta${{ matrix.delta-version }} pip install --no-deps -e . && pytest -vv
+
+    - name: Set up Python
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/setup-python@v3
+      with:
+          python-version: '3.9'
+
+    - name: Build
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: python -m build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@v1
+      with:
+        password: ${{ secrets.PYPI_TOKEN }}
