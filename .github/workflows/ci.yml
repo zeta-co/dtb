@@ -27,7 +27,7 @@ jobs:
     - name: Run tests
       run: |
         docker pull zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-delta${{ matrix.delta-version }}
-        docker run --rm -v $(pwd):/app zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-delta${{ matrix.delta-version }} pip install --no-deps -e . && pytest -vv
+        docker run --rm -v $(pwd):/app zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-delta${{ matrix.delta-version }} bash -c 'pip install --no-deps -e . && pytest -vv'
 
     - name: Set up Python
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
