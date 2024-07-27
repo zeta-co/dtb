@@ -25,7 +25,9 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Run tests
-      run: docker run --rm -v $(pwd):/app zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-deltdelta${{ matrix.delta-version }} pip install --no-deps -e . && pytest -vv
+      run: |
+        docker pull zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-deltdelta${{ matrix.delta-version }}
+        docker run --rm -v $(pwd):/app zetaco/dtb:py${{ matrix.python-version }}-spark${{ matrix.spark-version }}-deltdelta${{ matrix.delta-version }} pip install --no-deps -e . && pytest -vv
 
     - name: Set up Python
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
