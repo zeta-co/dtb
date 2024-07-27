@@ -43,7 +43,7 @@ jobs:
       with:
         python-version: '3.11'
     - name: Install dependencies
-      run: pip install setuptools wheel twine
+      run: pip install build setuptools wheel twine
     - name: Build
       run: |
         python -m build
