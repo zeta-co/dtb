@@ -1,16 +1,16 @@
 from datetime import datetime
 from typing import Dict, List, Tuple, Union
 from pyspark.sql import SparkSession
-from dtb.delta.delta_table_operator import DeltaTableOperator
-from dtb.rollback.rollback_criteria import RollbackCriteria
-from dtb.rollback.rollback_detail import RollbackDetail
-from dtb.rollback.rollback_plan import RollbackPlan
-from dtb.rollback.rollback_request import RollbackRequest
-from dtb.rollback.rollback_result import RollbackResult
-from dtb.table.table import Table
-from dtb.table.table_selector import TableSelector
-from dtb.logging.version import Version
-from dtb.logging.log_service import LogService
+from .delta_table_operator import DeltaTableOperator
+from .rollback_criteria import RollbackCriteria
+from .rollback_detail import RollbackDetail
+from .rollback_plan import RollbackPlan
+from .rollback_request import RollbackRequest
+from .rollback_result import RollbackResult
+from .table_selector import TableSelector
+from ..model.delta_version import DeltaVersion
+from ..model.table import Table
+from ..logging.log_service import LogService
 
 
 class RollbackManager:   
@@ -74,7 +74,7 @@ class RollbackManager:
         ) -> Union[RollbackResult, List[Dict[str, Union[str, int, datetime]]]]:
         details = []
         for table_obj, version_or_timestamp in tables_to_rollback:
-            version_obj = Version(version_or_timestamp)
+            version_obj = DeltaVersion(version_or_timestamp)
 
             result = self.delta_table_operator.rollback_table(table_obj, version_obj, dry_run)
             if result["success"]:

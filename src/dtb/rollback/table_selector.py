@@ -1,8 +1,8 @@
 from typing import List, Tuple
 from pyspark.sql import SparkSession
-from dtb.delta.delta_table_checker import DeltaTableChecker
-from dtb.logging.log_table_reader import LogTableReader
-from dtb.table.table import Table
+from ..model.table import Table
+from ..logging.log_table_reader import LogTableReader
+from ..utils.delta_table import table_is_delta
 
 
 class TableSelector:
@@ -18,7 +18,7 @@ class TableSelector:
         return [
             (Table(row.TableName), row.VersionFrom)
             for row in log_entries.collect()
-            if DeltaTableChecker.is_delta_table(self.spark, row.TableName)
+            if table_is_delta(self.spark, row.TableName)
         ]
 
     def select_tables_by_schema(self, schema: str) -> List[Table]:
@@ -26,8 +26,8 @@ class TableSelector:
         return [
             Table(schema, row.tableName)
             for row in tables.collect()
-            if DeltaTableChecker.is_delta_table(self.spark, f"{schema}.{row.tableName}")
+            if table_is_delta(self.spark, f"{schema}.{row.tableName}")
         ]
 
     def select_tables_by_list(self, tables: List[str]) -> List[Table]:
-        return [Table(t) for t in tables if DeltaTableChecker.is_delta_table(self.spark, t)]
+        return [Table(t) for t in tables if table_is_delta(self.spark, t)]

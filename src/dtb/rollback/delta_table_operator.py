@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import Dict, Union
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
-from dtb.delta.delta_table_checker import DeltaTableChecker
-from dtb.table.table import Table
-from dtb.logging.version import Version
+from ..model.table import Table
+from ..model.delta_version import DeltaVersion
+from ..utils.delta_table import table_is_delta
 
 
 class DeltaTableOperator:
@@ -12,9 +12,9 @@ class DeltaTableOperator:
         self.spark = spark
 
     def rollback_table(
-        self, table: Table, version: Version, dry_run: bool = False
+        self, table: Table, version: DeltaVersion, dry_run: bool = False
     ) -> Dict[str, Union[bool, str, datetime]]:
-        if not DeltaTableChecker.is_delta_table(self.spark, table.full_name):
+        if not table_is_delta(self.spark, table.full_name):
             return {
                 "success": False,
                 "error": f"Table [{table.full_name}] is not a Delta table"
