@@ -1,5 +1,5 @@
 import pytest
-from dtb.table.table import Table
+from dtb.model.table import Table
 
 
 def test_table_init_with_schema_and_name():

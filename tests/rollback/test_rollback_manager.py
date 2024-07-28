@@ -1,15 +1,15 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from datetime import datetime
-from dtb.delta.delta_table_operator import DeltaTableOperator
 from dtb.logging.log_service import LogService
+from dtb.model.table import Table
+from dtb.rollback.delta_table_operator import DeltaTableOperator
 from dtb.rollback.rollback_criteria import RollbackCriteria
 from dtb.rollback.rollback_manager import RollbackManager
 from dtb.rollback.rollback_plan import RollbackPlan
 from dtb.rollback.rollback_request import RollbackRequest
 from dtb.rollback.rollback_result import RollbackResult
-from dtb.table.table import Table
-from dtb.table.table_selector import TableSelector
+from dtb.rollback.table_selector import TableSelector
 
 
 class TestRollbackManager(unittest.TestCase):
@@ -34,8 +34,8 @@ class TestRollbackManager(unittest.TestCase):
         )
 
         mock_tables = [
-            (Table("schema1", "table1"), "1"),
-            (Table("schema2", "table2"), "2")
+            (Table("schema1", "table1"), 1),
+            (Table("schema2", "table2"), 2)
         ]
         self.mock_table_selector.select_tables_from_log.return_value = mock_tables
 
