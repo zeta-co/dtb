@@ -9,16 +9,17 @@ class Input(Dataset):
         if meta:
             format = meta["format"]
             stream = meta.get("stream", False)
+            table = meta.get("table", False)
             if format == "cloudFiles" or stream:
                 reader = spark.readStream
             else:
                 reader = spark.read
-            if format == "table":
+            if table:
                 return reader.table(meta["load"])
             else:
-                reader = reader.format(meta["format"])
+                reader = reader.format(format)
                 if "options" in meta:
-                    reader = reader.options(meta["options"])
+                    reader = reader.options(**meta["options"])
                 if "schema" in meta:
                     reader = reader.schema(meta["schema"])
                 return reader.load(meta["load"])
