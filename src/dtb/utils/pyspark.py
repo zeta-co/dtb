@@ -9,7 +9,6 @@ from pyspark.sql.types import (
 )
 
 
-
 def class_to_struct_type(cls):
     fields = []
     type_hints = get_type_hints(cls)

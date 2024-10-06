@@ -2,9 +2,9 @@ import functools
 from typing import Dict, Any, Callable
 from pyspark.sql import SparkSession
 from .output_handler import OutputHandler
-from .log_entry_delta_version import DeltaVersionLogEntry
+from ..tracking.delta_version_log_entry import DeltaVersionLogEntry
 from ..model.output import Output
-from ..tracking.tracker_delta_version import DeltaVersionTracker
+from ..tracking.delta_version_tracker import DeltaVersionTracker
 
 
 def log_delta_versions(

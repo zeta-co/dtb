@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import List
 from dtb.rollback.rollback_detail import RollbackDetail
 
@@ -7,7 +7,7 @@ class RollbackResult:
     def __init__(self, details: List[RollbackDetail], user: str):
         self.details = details
         self.user = user
-        self.timestamp = datetime.now()
+        self.timestamp = datetime.datetime.now()
         self.success_count = sum(1 for detail in details if detail.success)
         self.failure_count = len(details) - self.success_count
 

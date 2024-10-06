@@ -1,7 +1,7 @@
 
 import datetime
 from dataclasses import dataclass
-from .log_entry import LogEntry
+from ..logging.log_entry import LogEntry
 
 
 @dataclass(frozen=False)

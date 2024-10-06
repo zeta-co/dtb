@@ -2,9 +2,9 @@
 from typing import Any, Dict, List
 from delta import DeltaTable
 from pyspark.sql import SparkSession
-from .log_entry_delta_version import DeltaVersionLogEntry
+from ..tracking.delta_version_log_entry import DeltaVersionLogEntry
 from .output_handler import OutputHandler
-from .utils import class_to_struct_type
+from ..utils.pyspark import class_to_struct_type
 from ..utils.exception import DeltaTableOutputHandlerException
 
 

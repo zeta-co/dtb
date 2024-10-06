@@ -2,8 +2,8 @@ import datetime
 from typing import Dict, Any, List
 from pyspark.sql import SparkSession
 from .tracker import Tracker
-from .tracker_delta_version import DeltaVersionTracker
-from dtb.logging.log_entry import DeltaVersionLogEntry
+from .delta_version_log_entry import DeltaVersionLogEntry
+from ..utils.delta_table import get_delta_table
 
 
 

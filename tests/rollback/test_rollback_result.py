@@ -23,7 +23,7 @@ def test_rollback_result_initialization(mock_rollback_details):
     assert result.success_count == 2
     assert result.failure_count == 1
 
-@patch('dtb.rollback.rollback_result.datetime')  # Replace 'your_module' with the actual module name
+@patch('dtb.rollback.rollback_result.datetime.datetime')  # Replace 'your_module' with the actual module name
 def test_rollback_result_str_representation(mock_datetime, mock_rollback_details):
     mock_now = datetime(2023, 1, 1, 12, 0, 0)
     mock_datetime.now.return_value = mock_now

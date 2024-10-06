@@ -1,22 +1,11 @@
-import datetime
 from abc import ABC
 from dataclasses import dataclass
+from ..utils.pyspark import class_to_struct_type
 
 
 @dataclass(frozen=False)
 class LogEntry(ABC):
-    pass
 
-
-@dataclass(frozen=False)
-class DeltaVersionLogEntry(LogEntry):
-    JobID: str = None
-    RunID: str = None
-    Operation: str = None
-    RunDatetime: datetime.datetime = None
-    TableID: str = None
-    TableName: str = None
-    TablePath: str = None
-    VersionFrom: int = None
-    VersionTo: int = None
-    VersionDatetime: datetime.datetime = None
+    @classmethod
+    def to_struct_type(cls):
+        return class_to_struct_type(cls)
