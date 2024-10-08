@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dtb"
+version = "0.0.2"
+description = "Databricks Tool Box"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "Zeta", email = "vince@zeta.ms"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    # List your dependencies here
+]
+
+[tool.setuptools]
+packages = {find = {where = ["src"]}}
+package-dir = {"" = "src"}
