@@ -29,17 +29,17 @@ class Output(Dataset):
             writer = writer.trigger(meta["trigger"])
         return writer
 
-    def write(self) -> None:
+    def write(self, df: DataFrame) -> None:
         meta = self.metadata
         format = meta["format"]
         target = meta["save"]
         if meta.get("stream", False):
             if format == "table":
-                self.writer.toTable(target)
+                self.writer(df).toTable(target)
             else:
-                self.writer.format(format).start(target)
+                self.writer(df).format(format).start(target)
         else:
             if format == "table":
-                self.writer.saveAsTable(target)
+                self.writer(df).saveAsTable(target)
             else:
-                self.writer.format(format).save(target)
+                self.writer(df).format(format).save(target)
