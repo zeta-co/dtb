@@ -36,9 +36,9 @@ class DeltaTableOutputHandler(OutputHandler):
             if filters:
                 for key, value in filters.items():
                     if isinstance(value, (list, tuple)) and len(value) == 2:
-                        df = df.filter(col(key).between(value[0], value[1]))
+                        df = df.where(f"{key} between '{value[0]}' and '{value[1]}'")
                     else:
-                        df = df.filter(col(key) == value)
+                        df = df.where(f"{key} = '{value}'")
 
             # Convert back to DeltaVersionLogEntry objects
             log_entries = df.rdd.map(

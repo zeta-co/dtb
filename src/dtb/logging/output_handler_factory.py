@@ -1,5 +1,5 @@
 from .output_handler import OutputHandler
-from .delta_table_output_handler import DeltaTableOutputHandler
+from .output_handler_delta_table import DeltaTableOutputHandler
 
 
 class OutputHandlerFactory:
