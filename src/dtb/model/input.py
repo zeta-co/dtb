@@ -3,8 +3,22 @@ from .dataset import Dataset
 
 
 class Input(Dataset):
+    """
+    Represents an input dataset in the ETL process.
+    """
 
     def df(self, spark: SparkSession) -> DataFrame:
+        """
+        Create a DataFrame from the input dataset based on metadata.
+
+        This method supports various input formats including files, tables, and streams.
+
+        Args:
+            spark (SparkSession): The active Spark session.
+
+        Returns:
+            DataFrame: A Spark DataFrame representing the input data.
+        """
         meta = self.metadata
         if meta:
             format = meta["format"]

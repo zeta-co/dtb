@@ -5,11 +5,26 @@ from .dataset import Dataset
 
 
 class Output(Dataset):
+    """
+    Represents an output dataset in the ETL process.
+    """
     
     def df(self, spark: SparkSession) -> DataFrame:
+        """
+        This method is not implemented for Output datasets.
+        """
         pass
 
     def writer(self, df: DataFrame) -> Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]:
+        """
+        Create a writer for the DataFrame based on metadata.
+
+        Args:
+            df (DataFrame): The DataFrame to be written.
+
+        Returns:
+            Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]: A configured writer for the DataFrame.
+        """
         meta = self.metadata
         if meta.get("stream", False):
             writer = df.writeStream
@@ -30,6 +45,14 @@ class Output(Dataset):
         return writer
 
     def write(self, df: DataFrame) -> None:
+        """
+        Write the DataFrame to the output destination based on metadata.
+
+        This method supports various output formats including files, tables, and streams.
+
+        Args:
+            df (DataFrame): The DataFrame to be written.
+        """
         meta = self.metadata
         format = meta["format"]
         target = meta["save"]

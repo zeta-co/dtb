@@ -1,0 +1,17 @@
+classDiagram
+    class Dataset {
+        <<Abstract>>
+        +Dict metadata
+        +__init__(metadata: Dict[str, Any])
+        +df(spark: SparkSession) DataFrame
+    }
+    class Input {
+        +df(spark: SparkSession) DataFrame
+    }
+    class Output {
+        +df(spark: SparkSession) DataFrame
+        +writer(df: DataFrame) Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]
+        +write(df: DataFrame) None
+    }
+    Dataset <|-- Input
+    Dataset <|-- Output
