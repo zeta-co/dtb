@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from dtb.model.input import Input
+from dtb.model.io.input import Input
 
 
 class TestInput(unittest.TestCase):

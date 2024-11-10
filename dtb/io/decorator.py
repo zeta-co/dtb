@@ -1,6 +1,6 @@
 import os
 from typing import Callable
-from ..model.input import Input
+from ..model.io.input import Input
 from ..model.output import Output
 
 
