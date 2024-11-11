@@ -1,26 +1,46 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Union
+from typing import List
 
 
 class FilterStrategy(ABC):
-    """Abstract strategy for handling runtime filters"""
+    """Abstract base class defining interface for runtime filtering strategies.
+    
+    This class provides a common interface for implementing different filtering
+    approaches for data sources, such as file list filtering or SQL conditions.
+    """
 
     @abstractmethod
-    def apply_filter(self) -> Union[str, Dict[str, Any]]:
-        """Apply filter and return either modified path or filter conditions"""
+    def apply_filter(self) -> str:
+        """Applies the filter strategy and returns the filtered result.
+        
+        Returns:
+            str: Either a modified path or filter conditions depending on strategy.
+        """
         pass
 
     # TODO
-    @abstractmethod
-    def _validate_filters(self, filter_params: Optional[Dict[str, Any]]):
-        """Validate provided filters against metadata requirements"""
-        pass
+    # @abstractmethod
+    # def _validate_filter(self):
+    #     """Validate provided filters against metadata requirements"""
+    #     pass
 
 
 class FileListFilterStrategy(FilterStrategy):
-    """Strategy for using a list of files as filter for Spark Reader"""
+    """Implementation of FilterStrategy for filtering based on file lists.
+    
+    This strategy is used when the input source needs to be filtered to specific
+    files within a directory.
+    """
 
     def apply_filter(self, file_list: List[str]) -> str:
+        """Applies file list filtering by joining paths.
+        
+        Args:
+            file_list (List[str]): List of file paths to include in the filter.
+            
+        Returns:
+            str: Comma-separated string of file paths.
+        """
         return ",".join(file_list)
 
 

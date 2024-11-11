@@ -26,22 +26,20 @@ class Output(Dataset):
             Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]: A configured writer for the DataFrame.
         """
         meta = self.metadata
-        if meta.get("stream", False):
+        if meta.is_stream:
             writer = df.writeStream
         else:
             writer = df.write
-        if "mode" in meta:
-            writer = writer.mode(meta["mode"])
-        if "outputMode" in meta:
-            writer = writer.outputMode(meta["outputMode"])
-        if "options" in meta:
-            writer = writer.options(meta["options"])
-        if "partitionBy" in meta:
-            writer = writer.partitionBy(meta["partitionBy"])
-        if "sortBy" in meta:
-            writer = writer.sortBy(meta["sortBy"])
-        if "trigger" in meta:
-            writer = writer.trigger(meta["trigger"])
+        if meta.mode:
+            writer = writer.mode(meta.mode)
+        if meta.output_mode:
+            writer = writer.outputMode(meta.output_mode)
+        if meta.format_options:
+            writer = writer.options(**meta.format_options)
+        if meta.partition_by:
+            writer = writer.partitionBy(meta.partition_by)
+        if meta.sort_by:
+            writer = writer.sortBy(meta.sort_by)
         return writer
 
     def write(self, df: DataFrame) -> None:
@@ -54,15 +52,15 @@ class Output(Dataset):
             df (DataFrame): The DataFrame to be written.
         """
         meta = self.metadata
-        format = meta["format"]
-        target = meta["save"]
-        if meta.get("stream", False):
-            if format == "table":
+        format = meta.type
+        target = meta.path
+        if not meta.is_stream:
+            if meta.is_table:
                 self.writer(df).toTable(target)
             else:
                 self.writer(df).format(format).start(target)
         else:
-            if format == "table":
+            if meta.is_table:
                 self.writer(df).saveAsTable(target)
             else:
                 self.writer(df).format(format).save(target)

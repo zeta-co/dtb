@@ -1,0 +1,4 @@
+id,date,product,quantity,price
+1,2024-01-01,Widget A,5,10.99
+2,2024-01-01,Widget B,3,15.99
+3,2024-01-02,Widget A,2,10.99

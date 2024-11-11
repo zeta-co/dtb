@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from pyspark.sql import DataFrame
 from .filter_strategy import FilterStrategy, FileListFilterStrategy, SqlFilterStrategy
 from ..metadata import Metadata
@@ -18,7 +18,7 @@ class InputSource(ABC):
         pass
 
     @abstractmethod
-    def read(self, spark, filter: Optional[str] = None) -> DataFrame:
+    def df(self, spark, filter: Optional[str] = None) -> DataFrame:
         """Read data from source with optional filtering"""
         pass
 
@@ -29,33 +29,32 @@ class FileInputSource(InputSource):
     def _create_filter_strategy(self) -> FilterStrategy:
         return FileListFilterStrategy()
 
-    def read(self, spark, filter: Optional[List[str]] = None) -> DataFrame:
+    def df(self, spark, filter: Optional[List[str]] = None) -> DataFrame:
+        path = self.metadata.path
         if filter:
             path = self._filter_strategy.apply_filter(filter)
-
         reader = spark.read
-        if self.config.format:
-            reader = reader.format(self.config.format)
-        if self.config.options:
-            reader = reader.options(**self.config.options)
-
+        if self.metadata.is_stream:
+            reader = spark.readStream
+        reader = reader.format(self.metadata.type)
+        if self.metadata.format_options:
+            reader = reader.options(**self.metadata.format_options)
+        # TODO
+        reader = reader.schema(self.metadata.schema_string)
         return reader.load(path)
 
 
 class TableInputSource(InputSource):
-    """Handler for Delta table inputs"""
+    """Handler for catalog table inputs"""
 
     def _create_filter_strategy(self) -> FilterStrategy:
         return SqlFilterStrategy()
 
-    def read(self, spark, filter: Optional[str] = None) -> DataFrame:
-        df = spark.read.format("delta").table(self.config.path)
-
+    def df(self, spark, filter: Optional[str] = None) -> DataFrame:
+        df = spark.read.format(self.metadata.type).table(self.metadata.path)
         if filter:
             conditions = self._filter_strategy.apply_filter(filter)
-            for column, value in conditions.items():
-                df = df.filter(f"{column} = {value}")
-
+            df = df.where(conditions)
         return df
 
 
@@ -64,9 +63,7 @@ class InputSourceFactory:
 
     @staticmethod
     def create_input_source(metadata: Metadata) -> InputSource:
-        if metadata.type in ["csv", "txt", "json"]:
-            return FileInputSource(metadata)
-        elif metadata.type == "delta":
+        if metadata.is_table:
             return TableInputSource(metadata)
         else:
-            raise ValueError(f"Unsupported source type: {metadata.type}")
+            return FileInputSource(metadata)

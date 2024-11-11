@@ -1,27 +1,43 @@
 classDiagram
 
     class Dataset {
-        <<Abstract>>
-        +Dict metadata
+        <<abstract>>
+        -metadata: Metadata
         +__init__(metadata: Dict[str, Any])
+    }
+
+    class Metadata {
+        -_metadata: Dict[str, Any]
+        +__post_init__()
+        +type: str
+        +path: str
+        +is_table: bool
+        +table_details: Dict[str, str]
+        +table_catalog: str
+        +table_schema: str
+        +table_name: str
+        +is_stream: bool
+        +format_options: Dict[str, Any]
+        +schema: Dict[str, Any]
+        +schema_string: str
+        +mode: str
+        +output_mode: str
+        +partition_by: List[str]
+        +sort_by: List[str]
+        +get_column_names(): list
+        +get_partition_columns(): list
+        +to_dict(): Dict[str, Any]
     }
 
     class Input {
         -InputSource _source
-        +read(spark, filter_params)
+        +df(spark, filter_params)
     }
 
     class Output {
         +df(spark: SparkSession) DataFrame
         +writer(df: DataFrame) Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]
         +write(df: DataFrame) None
-    }
-
-    class InputConfig {
-        +str source_type
-        +str path
-        +Optional[str] format
-        +Optional[Dict] options
     }
 
     class FilterStrategy {
@@ -45,20 +61,21 @@ classDiagram
         <<abstract>>
         -FilterStrategy _filter_strategy
         -InputConfig config
-        +read(spark, filter_params)*
+        +df(spark, filter_params)*
         #_create_filter_strategy()*
     }
 
     class FileInputSource {
-        +read(spark, filter_params)
+        +df(spark, filter_params)
         #_create_filter_strategy()
     }
 
     class TableInputSource {
-        +read(spark, filter_params)
+        +df(spark, filter_params)
         #_create_filter_strategy()
     }
 
+    Dataset o-- Metadata
     Dataset <|-- Input
     Dataset <|-- Output
     FilterStrategy <|-- FileListFilterStrategy
@@ -68,4 +85,4 @@ classDiagram
     InputSource o-- FilterStrategy
     Input o-- InputSource
     InputSourceFactory ..> InputSource
-    InputSource o-- InputConfig
+

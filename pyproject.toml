@@ -10,13 +10,12 @@ readme = "README.md"
 authors = ["Zeta <vince@zeta.ms>"]
 classifiers = [
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
     "Operating System :: OS Independent"
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "~3.11"
 
 [tool.poetry.group.dev.dependencies]
 delta-spark="3.0.0"
@@ -25,3 +24,4 @@ mkdocs = "^1.6.1"
 pyspark="3.5.1"
 pytest="7.4.4"
 pytest-cov="4.1.0"
+ipykernel = "^6.29.5"

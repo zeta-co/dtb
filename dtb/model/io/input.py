@@ -1,7 +1,8 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import SparkSession, DataFrame
 from .input_source import InputSourceFactory
 from ..dataset import Dataset
+from ..metadata import Metadata
 
 
 class Input(Dataset):
@@ -43,48 +44,45 @@ class Input(Dataset):
 
 
 class Input:
-    """Main interface for reading data"""
-    def __init__(self, config: InputConfig):
-        self._source = InputSourceFactory.create_input_source(config)
+    """Main handler for input sources in ETL operations.
 
-    def read(self, spark, filter_params: Optional[Dict[str, Any]] = None) -> 'DataFrame':
-        """Read data with optional runtime filters"""
-        return self._source.read(spark, filter_params)
+    This class provides a high-level interface for reading data from various
+    sources (files, tables, streams) with support for filtering and quality checks.
 
+    Args:
+        metadata (Dict[str, Any]): Configuration dictionary containing source
+            properties and options.
 
-class Input:
-    """Input handler that works with metadata dictionary"""
+    Attributes:
+        metadata (Metadata): Wrapped metadata object.
+        _source (InputSource): Concrete input source handler.
+    """
+
     def __init__(self, metadata: Dict[str, Any]):
-        super().__init__(metadata)
+        """Initialises Input handler with metadata.
+
+        Args:
+            metadata (Dict[str, Any]): Configuration dictionary for the input source.
+        """
+        self.metadata = Metadata(metadata)
         self._source = self._create_source()
-    
+
     def _create_source(self):
         """Create appropriate source handler based on metadata"""
-        config = InputConfig(
-            source_type=self.metadata.source_type,
-            path=self.metadata.source_path,
-            format=self.metadata.source_type if self.metadata.source_type != "delta" else None,
-            options=self.metadata.format_options
-        )
-        return InputSourceFactory.create_input_source(config)
-    
-    def read(self, spark, filter_params: Optional[Dict[str, Any]] = None) -> 'DataFrame':
-        """Read data using metadata configuration"""
-        self._validate_filters(filter_params)
+        return InputSourceFactory.create_input_source(self.metadata)
+
+    def df(
+        self, spark: SparkSession, filter: Optional[Union[str, List[str]]] = None
+    ) -> DataFrame:
+        """Reads data from the configured source with optional filtering.
         
-        # Apply runtime configurations from metadata
-        runtime_config = self.metadata._metadata.get("runtime", {})
-        if batch_size := runtime_config.get("batch_size"):
-            spark = spark.conf.set(
-                "spark.sql.execution.arrow.maxRecordsPerBatch", 
-                batch_size
-            )
+        Args:
+            spark (SparkSession): Active Spark session.
+            filter (Optional[Union[str, List[str]]]): Filter to apply to the source.
+                For file sources, this should be a list of file paths.
+                For table sources, this should be a SQL condition string.
         
-        # Read data
-        df = self._source.read(spark, filter_params)
-        
-        # Apply quality checks if defined
-        if quality_rules := self.metadata._metadata.get("quality"):
-            self._apply_quality_checks(df, quality_rules)
-        
-        return df
+        Returns:
+            DataFrame: Spark DataFrame containing the read data.
+        """
+        return self._source.df(spark, filter)
