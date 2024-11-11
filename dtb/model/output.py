@@ -56,11 +56,11 @@ class Output(Dataset):
         target = meta.path
         if not meta.is_stream:
             if meta.is_table:
-                self.writer(df).toTable(target)
-            else:
-                self.writer(df).format(format).start(target)
-        else:
-            if meta.is_table:
                 self.writer(df).saveAsTable(target)
             else:
-                self.writer(df).format(format).save(target)
+                self.writer(df).format(format).save(target)            
+        else:
+            if meta.is_table:
+                self.writer(df).toTable(target)
+            else:
+                self.writer(df).format(format).start(target)            
