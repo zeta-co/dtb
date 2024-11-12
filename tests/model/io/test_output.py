@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from pyspark.sql import SparkSession, DataFrame
-from dtb.model.output import Output
+from dtb.model.io.output import Output
 
 
 class TestOutput(unittest.TestCase):
@@ -27,21 +27,14 @@ class TestOutput(unittest.TestCase):
         self.mock_writer.format.return_value = self.mock_writer
         self.mock_writer.mode.return_value = self.mock_writer
         self.mock_writer.outputMode.return_value = self.mock_writer
+        self.mock_writer.option.return_value = self.mock_writer
         self.mock_writer.options.return_value = self.mock_writer
         self.mock_writer.partitionBy.return_value = self.mock_writer
         self.mock_writer.sortBy.return_value = self.mock_writer
         self.mock_writer.trigger.return_value = self.mock_writer
 
-    def test_writer_batch_mode(self):
-        self.output.writer(self.df)
-        self.mock_writer.mode.assert_called_with('overwrite')
-        self.mock_writer.outputMode.assert_called_with('append')
-        self.mock_writer.options.assert_called_with(path='/path/to/save')
-        self.mock_writer.partitionBy.assert_called_with(['col1'])
-        self.mock_writer.sortBy.assert_called_with(['col2'])
-
     def test_write_batch_mode(self):
-        self.output.write(self.df)
+        self.output.write(self.df, self.spark)
         self.mock_writer.format.assert_called_with('parquet')
         self.mock_writer.save.assert_called_with('/path/to/save')
 

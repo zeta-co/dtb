@@ -3,7 +3,7 @@ from typing import Dict, Any, Callable
 from pyspark.sql import SparkSession
 from .output_handler import OutputHandler
 from ..tracking.delta_version_log_entry import DeltaVersionLogEntry
-from ..model.output import Output
+from ..model.io.output import Output
 from ..tracking.delta_version_tracker import DeltaVersionTracker
 
 

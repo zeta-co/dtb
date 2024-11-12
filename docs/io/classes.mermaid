@@ -34,10 +34,48 @@ classDiagram
         +df(spark, filter_params)
     }
 
+    class WriteMode {
+        <<enumeration>>
+        APPEND
+        OVERWRITE
+        +from_string(str) WriteMode
+    }
+
+    class WriteStrategy {
+        <<abstract>>
+        +write_batch(DataFrame, writer, OutputOptions, Metadata)*
+        +write_stream(DataFrame, writer, OutputOptions, Metadata)*
+    }
+
+    class AppendStrategy {
+        +write_batch(DataFrame, writer, OutputOptions, Metadata)
+        +write_stream(DataFrame, writer, OutputOptions, Metadata)
+    }
+
+    class OverwriteStrategy {
+        -_should_evolve_schema(Dict, Dict) bool
+        +write_batch(DataFrame, writer, OutputOptions, Metadata)
+        +write_stream(DataFrame, writer, OutputOptions, Metadata)
+    }
+
+    class OutputOptions {
+        +WriteMode mode
+        +List[str] partition_by
+        +List[str] sort_by
+        +Dict[str, Any] format_options
+    }    
+
     class Output {
-        +df(spark: SparkSession) DataFrame
-        +writer(df: DataFrame) Union[DataFrameWriter, DataFrameWriterV2, DataStreamWriter]
-        +write(df: DataFrame) None
+        -Dict[WriteMode, WriteStrategy] _write_strategies
+        -Metadata metadata
+        -List[DataCheck] checks
+        -OutputOptions options
+        -WriteStrategy write_strategy
+        -_validate_schema_compatibility()
+        -_sync_table_properties()
+        -_run_checks()
+        -_prepare_writer()
+        +write()
     }
 
     class FilterStrategy {
@@ -85,4 +123,9 @@ classDiagram
     InputSource o-- FilterStrategy
     Input o-- InputSource
     InputSourceFactory ..> InputSource
+    WriteStrategy <|-- AppendStrategy
+    WriteStrategy <|-- OverwriteStrategy
+    Output o-- OutputOptions
+    Output o-- WriteStrategy
+    OutputOptions o-- WriteMode
 
