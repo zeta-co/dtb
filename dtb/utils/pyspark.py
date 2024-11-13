@@ -1,7 +1,5 @@
 import datetime
 from typing import get_type_hints
-from delta import DeltaTable
-from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -25,12 +23,3 @@ def class_to_struct_type(cls):
         else:
             raise ValueError(f"Unsupported type for attribute {attr_name}: {attr_type}")
     return StructType(fields)
-
-def create_delta_table_if_not_exists(
-    spark: SparkSession, table_name: str, schema: StructType
-) -> None:
-    try:
-        DeltaTable.forName(spark, table_name)
-    except Exception:
-        empty_df = spark.createDataFrame([], schema)
-        empty_df.write.format("delta").saveAsTable(table_name)

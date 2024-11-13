@@ -98,9 +98,9 @@ class DeltaVersionLogEntry(LogEntry):
     _target_schema: StructType = StructType(
         [
             StructField("JobID", StringType()),
+            StructField("JobName", StringType()),
             StructField("RunID", StringType()),
             StructField("Operation", StringType()),
-            StructField("JobID", StringType()),
             StructField("Datetime", TimestampType()),
             StructField("TableID", StringType()),
             StructField("TableName", StringType()),
