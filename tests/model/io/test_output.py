@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from pyspark.sql import SparkSession, DataFrame
-from dtb.model.io.output import Output
+from dtb.io.output import Output
 
 
 class TestOutput(unittest.TestCase):

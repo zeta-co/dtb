@@ -1,4 +1,4 @@
-from dtb.model.io.filter_strategy import FileListFilterStrategy, SqlFilterStrategy
+from dtb.io.filter_strategy import FileListFilterStrategy, SqlFilterStrategy
 
 
 class TestFileListFilterStrategy:

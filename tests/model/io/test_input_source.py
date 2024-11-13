@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from pyspark.sql import DataFrame, DataFrameReader, DataFrameWriter
-from dtb.model.io.input_source import InputSourceFactory, FileInputSource, TableInputSource
+from dtb.io.input_source import InputSourceFactory, FileInputSource, TableInputSource
 from dtb.model.metadata import Metadata
 
 
