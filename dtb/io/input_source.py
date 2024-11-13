@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from pyspark.sql import DataFrame
 from .filter_strategy import FilterStrategy, FileListFilterStrategy, SqlFilterStrategy
-from ..metadata import Metadata
+from ..model.metadata import Metadata
 
 
 class InputSource(ABC):

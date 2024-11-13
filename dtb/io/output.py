@@ -1,7 +1,7 @@
 from typing import Any
 from pyspark.sql import DataFrame, SparkSession
-from ..dataset import Dataset
-from ..metadata import Metadata
+from ..model.dataset import Dataset
+from ..model.metadata import Metadata
 from .write_strategy import AppendStrategy, OverwriteStrategy
 
 

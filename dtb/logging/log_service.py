@@ -6,20 +6,70 @@ from .log_writer import LogWriter
 
 class LogService:
 
-    """Main logging system that coordinates log entries and writers"""
-    def __init__(self, spark: SparkSession):
+    """
+    Main logging system that coordinates log entries and writers.
+
+    This service manages the buffering and writing of log entries to various targets
+    through configured writers. It supports batching of log entries for improved
+    performance.
+
+    Attributes:
+        spark: Active SparkSession
+        writers: List of configured log writers
+        buffer: Buffer of log entries waiting to be written
+        buffer_size: Maximum number of entries to buffer before automatic flush
+    """
+
+    def __init__(self, spark: SparkSession, buffer_size: int = 1000):
+        """
+        Initialize a new logging service.
+
+        Args:
+            spark: Active SparkSession
+            buffer_size: Maximum number of entries to buffer before automatic flush
+        """
         self.spark = spark
         self.writers: List[LogWriter] = []
         self.buffer: List[LogEntry] = []
-       
-    def add_writer(self, writer: LogWriter):
-        """Add a new log writer"""
+
+    def add_writer(self, writer: LogWriter) -> None:
+        """
+        Add a new log writer to the service.
+
+        Args:
+            writer: LogWriter instance to add
+        """
         self.writers.append(writer)
-       
-    def add_log_entry(self, entry: LogEntry):
-        """Log a new entry"""      
+
+    def add_log_entry(self, entry: LogEntry) -> None:
+        """
+        Add a new log entry to the buffer.
+
+        Args:
+            entry: LogEntry instance to add
+
+        Raises:
+            ValueError: If entry is not a LogEntry instance
+        """
+        if not isinstance(entry, LogEntry):
+            raise ValueError("Entry must be an instance of LogEntry")
+
         self.buffer.append(entry)
-   
-    def flush(self, log_type: Optional[str] = None):
-        """Flush logs to all writers"""
+
+    def flush(self) -> None:
+        """
+        Flush all buffered log entries to configured writers.
+
+        Raises:
+            RuntimeError: If no writers are configured
+        """
+        if not self.writers:
+            raise RuntimeError("No log writers configured")
+
+        if not self.buffer:
+            return
+
+        for writer in self.writers:
+            writer.write(self.buffer)
+
         self.buffer = []

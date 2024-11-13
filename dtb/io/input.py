@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import SparkSession, DataFrame
 from .input_source import InputSourceFactory
-from ..dataset import Dataset
-from ..metadata import Metadata
+from ..model.dataset import Dataset
+from ..model.metadata import Metadata
 
 
 class Input(Dataset):

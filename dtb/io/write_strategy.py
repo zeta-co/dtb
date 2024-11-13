@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from pyspark.sql import DataFrame
-from ..metadata import Metadata
+from ..model.metadata import Metadata
 
 
 class WriteStrategy(ABC):
