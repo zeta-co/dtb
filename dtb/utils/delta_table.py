@@ -1,4 +1,4 @@
-from delta import DeltaTable
+from dtb.utils.delta_table import DeltaTable
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType
 from .exception import NotDeltaTableException, TableNotExistException

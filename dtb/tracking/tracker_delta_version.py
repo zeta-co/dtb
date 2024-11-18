@@ -2,7 +2,7 @@ import datetime
 from typing import Dict, Any
 from pyspark.sql import SparkSession
 from .tracker import Tracker
-from ..utils.delta import get_delta_table
+from ..utils.delta_table import get_delta_table
 
 
 class DeltaVersionTracker(Tracker):

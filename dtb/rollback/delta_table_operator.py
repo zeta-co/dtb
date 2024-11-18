@@ -4,7 +4,7 @@ from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
 from ..model.table import Table
 from ..model.delta_version import DeltaVersion
-from ..utils.delta import table_is_delta
+from ..utils.delta_table import table_is_delta
 
 
 class DeltaTableOperator:

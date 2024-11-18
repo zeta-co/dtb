@@ -4,7 +4,7 @@ from typing import List
 from pyspark.sql import DataFrame, SparkSession
 from .log_entry import LogEntry
 from .log_writer import LogWriter
-from ..utils.delta import create_delta_table_if_not_exists
+from ..utils.delta_table import create_delta_table_if_not_exists
 
 
 class DeltaTableLogWriter(LogWriter):
