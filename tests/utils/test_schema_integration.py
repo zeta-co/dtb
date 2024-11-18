@@ -1,48 +1,34 @@
 from datetime import datetime
 from dtb.model.schema_registry import SchemaRegistry
 from dtb.utils.date_extractor import DateExtractors
-from dtb.utils.filename_date_resolver import FilenameDateResolver
 from dtb.utils.schema_loader import SchemaLoader
 
 
 def test_schema_integration():
     """Integration test for the entire system."""
-    # Set up the system
+    # Set up registry with schemas
     registry = SchemaRegistry()
-    resolver = FilenameDateResolver()
-    resolver.add_extractor(DateExtractors.yyyy_mm_dd())
-    resolver.add_extractor(DateExtractors.yyyymmdd())
-
-    # Add schema versions
     registry.add_schema_version(
         start_date=datetime(2024, 1, 1),
         columns={"id": "integer"},
         end_date=datetime(2024, 2, 1),
     )
-
     registry.add_schema_version(
-        start_date=datetime(2024, 2, 1),
-        columns={"id": "integer", "name": "string"},
-        end_date=datetime(2024, 3, 1),
+        start_date=datetime(2024, 2, 1), columns={"id": "integer", "name": "string"}
     )
 
-    registry.add_schema_version(
-        start_date=datetime(2024, 3, 1),
-        columns={"id": "integer", "name": "string", "value": "double"},
-    )
+    # Test with YYYY-MM-DD format dataset
+    yyyy_mm_dd_loader = SchemaLoader(registry, DateExtractors.yyyy_mm_dd())
+    schema1 = yyyy_mm_dd_loader.get_schema_for_file("data_2024-01-15_daily.csv")
+    assert schema1 == {"id": "integer"}
 
-    loader = SchemaLoader(registry, resolver)
+    schema2 = yyyy_mm_dd_loader.get_schema_for_file("data_2024-02-15_daily.csv")
+    assert schema2 == {"id": "integer", "name": "string"}
 
-    # Test with different file formats and dates
-    test_cases = [
-        ("data_2024-01-15_daily.csv", {"id": "integer"}),
-        ("20240215_data.csv", {"id": "integer", "name": "string"}),
-        (
-            "data_2024-03-20_daily.csv",
-            {"id": "integer", "name": "string", "value": "double"},
-        ),
-    ]
+    # Test with YYYYMMDD format dataset (different dataset, same registry)
+    yyyymmdd_loader = SchemaLoader(registry, DateExtractors.yyyymmdd())
+    schema3 = yyyymmdd_loader.get_schema_for_file("20240115_data.csv")
+    assert schema3 == {"id": "integer"}
 
-    for filename, expected_schema in test_cases:
-        schema = loader.get_schema_for_file(filename)
-        assert schema == expected_schema
+    schema4 = yyyymmdd_loader.get_schema_for_file("20240215_data.csv")
+    assert schema4 == {"id": "integer", "name": "string"}

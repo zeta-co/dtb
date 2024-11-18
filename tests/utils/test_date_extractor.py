@@ -1,5 +1,4 @@
-import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 from dtb.utils.date_extractor import DateExtractors, RegexDateExtractor
 
 

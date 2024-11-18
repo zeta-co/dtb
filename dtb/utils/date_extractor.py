@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 from datetime import datetime
 import re
 from typing import Callable, Optional, Protocol
-from abc import ABC, abstractmethod
 
 
-class ProtocolDateExtractor(Protocol):
+class DateExtractor(Protocol):
     """Protocol defining the interface for date extractors."""
     def extract_date(self, filename: str) -> Optional[datetime]:
         """Extract date from filename."""
