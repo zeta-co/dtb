@@ -17,7 +17,7 @@ class Expectation(ABC):
     def __init__(self, spark: SparkSession, df: DataFrame) -> None:
         self._spark = spark
         self._df = df
-        self.id = generate_random_alphanumeric()
+        self.id = generate_random_alphanumeric(12)
         self.flag_column = f"_dtb_check_{self.id}"
 
     @property

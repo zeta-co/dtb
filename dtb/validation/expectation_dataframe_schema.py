@@ -4,7 +4,7 @@ from .expectation_result_dataframe_schema import DataframeSchemaExpectationResul
 from ..model.schema_version import SchemaVersion
 
 
-class SchemaColumnsExpectation(Expectation):
+class DataframeSchemaExpectation(Expectation):
 
     def validate(
         self, schema_version: SchemaVersion, by_order: Optional[bool] = True
@@ -33,20 +33,22 @@ class SchemaColumnsExpectation(Expectation):
         # If not checking order, only set comparison matters
         if not by_order:
             return DataframeSchemaExpectationResult(
-                self._df,
-                missing_columns == extra_columns == set(),
-                source_columns,
-                expected_columns,
-                missing_columns,
-                extra_columns,
+                expectation_id=self.id,
+                df=self._df,
+                passed=missing_columns == extra_columns == set(),
+                source_columns=source_columns,
+                expected_columns=expected_columns,
+                missing_columns=missing_columns,
+                extra_columns=extra_columns,
             )
 
         # When checking order, lists must be identical
         return DataframeSchemaExpectationResult(
-            self._df,
-            source_columns == expected_columns,
-            source_columns,
-            expected_columns,
-            missing_columns,
-            extra_columns,
+            expectation_id=self.id,
+            df=self._df,
+            passed=source_columns == expected_columns,
+            source_columns=source_columns,
+            expected_columns=expected_columns,
+            missing_columns=missing_columns,
+            extra_columns=extra_columns,
         )

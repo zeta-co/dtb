@@ -5,8 +5,9 @@ class Check:
     """
     Main class that processes expectation results using appropriate calculators and loggers
     """
-    def __init__(self):
-        # Initialize registries
+    def __init__(self, name: str):
+        self.name = name
+        # Initialise registries
         self.stats_registry = StatsCalculatorRegistry()
         self.logger_registry = ValidationLoggerRegistry()
         

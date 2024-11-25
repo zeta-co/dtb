@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import Any, Dict
+from dataclasses import dataclass
+from pyspark.sql import DataFrame
 
 
-class ExpectationResult(ABC):
+@dataclass
+class ExpectationResult:
     """Base class for all expectation validation results."""
-    
-    # @abstractmethod
-    # def to_dict(self) -> Dict[str, Any]:
-    #     """Convert result to dictionary format."""
-    #     pass
+
+    expectation_id: str
+    df: DataFrame

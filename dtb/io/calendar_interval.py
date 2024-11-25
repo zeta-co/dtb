@@ -17,7 +17,7 @@ class CalendarInterval:
     )
 
     def __init__(self, interval_str: str):
-        """Initialize CalendarInterval from string.
+        """Initialise CalendarInterval from string.
 
         Args:
             interval_str (str): Interval string (e.g., "interval 1 week").

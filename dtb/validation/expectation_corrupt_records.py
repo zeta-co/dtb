@@ -92,6 +92,7 @@ class CorruptRecordsExpectation(Expectation):
             invalid_count = corrupt_records.count()
             passed = True if invalid_count == 0 else False
             return DataframeExpectationResult(
+                expectation_id=self.id,
                 df=self._df,
                 flag_column=self.flag_column,
                 value_column="_corrupt_record",
@@ -101,6 +102,7 @@ class CorruptRecordsExpectation(Expectation):
             )
         else:
             return DataframeExpectationResult(
+                expectation_id=self.id,
                 df=self._df,
                 flag_column=self.flag_column,
             )

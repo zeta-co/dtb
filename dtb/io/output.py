@@ -26,7 +26,7 @@ class Output(Dataset):
         self,
         metadata: Metadata
     ):
-        """Initialize Output instance.
+        """Initialise Output instance.
         
         Args:
             metadata (Metadata): Output configuration metadata.
@@ -36,7 +36,7 @@ class Output(Dataset):
         """
         self.metadata = Metadata(metadata)
         
-        # Initialize write mode and strategy
+        # Initialise write mode and strategy
         write_mode = self.metadata.mode
         strategy_class = self._write_strategies.get(write_mode)
         if not strategy_class:
@@ -44,7 +44,7 @@ class Output(Dataset):
         self.write_strategy = strategy_class()
 
     def _sync_table_properties(self, spark: Any) -> None:
-        """Synchronizes table properties with metadata configuration."""
+        """Synchronises table properties with metadata configuration."""
         if self.metadata.is_table:
             table_path = (
                 f"{self.metadata.table_catalog}."

@@ -17,7 +17,7 @@ class DeltaTableLogWriter(LogWriter):
 
     def __init__(self, spark: SparkSession, table_name: str):
         """
-        Initialize a new Delta table log writer.
+        Initialise a new Delta table log writer.
 
         Args:
             spark: Active SparkSession

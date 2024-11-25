@@ -9,7 +9,6 @@ from pyspark.sql.types import (
     StringType,
     TimestampType,
 )
-from .log_context import LogContext
 
 
 class LogEntry(ABC):
@@ -21,20 +20,17 @@ class LogEntry(ABC):
     this class and implement the required abstract methods.
 
     Attributes:
-        _context (LogContext): Holds global context information
         _target_schema (StructType): The expected schema for the log entry
         _df (Optional[DataFrame]): Source DataFrame if the log entry is created from data
         _log_entry_dict (Dict): Dictionary containing log entry data
     """
 
-    _context: LogContext
     _target_schema: StructType
     _df: DataFrame
     _log_entry_dict: Dict[str, Any]
 
     def __init__(
         self,
-        context: LogContext,
         df: Optional[DataFrame] = None,
         log_entry_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -48,7 +44,6 @@ class LogEntry(ABC):
         Raises:
             ValueError: If neither df nor log_entry_dict is provided
         """
-        self._context = context
         self._df = df
         self._log_entry_dict = log_entry_dict or {}
 

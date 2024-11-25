@@ -13,7 +13,7 @@ class Dataset(ABC):
 
     def __init__(self, metadata: Dict[str, Any]):
         """
-        Initialize the Dataset with metadata.
+        Initialise the Dataset with metadata.
 
         Args:
             metadata (Dict[str, Any]): Metadata describing the dataset properties.

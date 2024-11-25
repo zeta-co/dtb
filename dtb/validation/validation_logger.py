@@ -15,10 +15,10 @@ class ValidationLogger:
     def __init__(self, spark: SparkSession):
         self.spark = spark
         self.logger = logging.getLogger(__name__)
-        self._initialize_tables()
+        self._initialise_tables()
 
-    def _initialize_tables(self):
-        """Initialize Delta tables with optimized configurations"""
+    def _initialise_tables(self):
+        """Initialise Delta tables with optimized configurations"""
         # Create error_records table if not exists
         self.spark.sql(
             """
@@ -74,7 +74,7 @@ class ValidationLogger:
             .withColumn("file_path", lit(file_path))
         )
 
-        # Write to Delta table with optimized configurations
+        # Write to Delta table with optimised configurations
         error_df_final.write.format("delta").mode("append").option(
             "mergeSchema", "true"
         ).saveAsTable("schema_validation.error_records")

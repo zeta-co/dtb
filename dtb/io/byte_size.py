@@ -9,7 +9,7 @@ class ByteSize:
     _MULTIPLIERS = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3, "TB": 1024**4}
 
     def __init__(self, size_str: str):
-        """Initialize ByteSize from string.
+        """Initialise ByteSize from string.
 
         Args:
             size_str (str): Size string (e.g., "100MB").
