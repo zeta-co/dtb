@@ -9,29 +9,37 @@ from pyspark.sql.types import (
     StringType,
     TimestampType,
 )
+from .log_context import LogContext
 
 
 class LogEntry(ABC):
     """
     Abstract base class for all log entries in the ETL logging system.
-    
+
     This class defines the interface for different types of log entries and provides
     basic validation functionality. All concrete log entry types should inherit from
     this class and implement the required abstract methods.
 
     Attributes:
+        _context (LogContext): Holds global context information
         _target_schema (StructType): The expected schema for the log entry
         _df (Optional[DataFrame]): Source DataFrame if the log entry is created from data
         _log_entry_dict (Dict): Dictionary containing log entry data
     """
 
+    _context: LogContext
     _target_schema: StructType
+    _df: DataFrame
+    _log_entry_dict: Dict[str, Any]
 
     def __init__(
-        self, df: Optional[DataFrame] = None, log_entry_dict: Optional[Dict[str, Any]] = None
+        self,
+        context: LogContext,
+        df: Optional[DataFrame] = None,
+        log_entry_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
-        Initialize a new log entry.
+        Initialise a new log entry.
 
         Args:
             df: Optional DataFrame containing the source data
@@ -40,13 +48,13 @@ class LogEntry(ABC):
         Raises:
             ValueError: If neither df nor log_entry_dict is provided
         """
+        self._context = context
         self._df = df
         self._log_entry_dict = log_entry_dict or {}
-        
+
         if not df and not log_entry_dict:
             raise ValueError("Either df or log_entry_dict must be provided")
 
-    @abstractmethod
     def output_df(self, spark: SparkSession) -> DataFrame:
         """
         Convert the log entry to a DataFrame.
@@ -59,7 +67,6 @@ class LogEntry(ABC):
         """
         pass
 
-    @abstractmethod
     def output_str(self) -> str:
         """
         Convert the log entry to a string representation.
@@ -68,6 +75,14 @@ class LogEntry(ABC):
             str: String representation of the log entry
         """
         pass
+
+    def output_dict(self) -> Dict[str, Any]:
+        """
+        Convert the log entry to a dictionary representation.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the log entry
+        """
 
     # TODO: validate both _df and _log_entry_dict
     # def validate_schema(self) -> None:
@@ -78,13 +93,12 @@ class LogEntry(ABC):
     #         ValueError: If any required fields are missing
     #     """
     #     missing_keys = [
-    #         f.name for f in self._target_schema 
+    #         f.name for f in self._target_schema
     #         if f.name not in self._log_entry_dict
     #     ]
     #     if missing_keys:
     #         keys_str = '\n'.join(missing_keys)
     #         raise ValueError(f"The following values are missing from the log entry:\n{keys_str}")
-
 
 
 class DeltaVersionLogEntry(LogEntry):
@@ -115,7 +129,7 @@ class DeltaVersionLogEntry(LogEntry):
         self, df: Optional[DataFrame] = None, log_entry_dict: Optional[Dict] = None
     ) -> None:
         """
-        Initialize a new Delta version log entry.
+        Initialise a new Delta version log entry.
 
         Args:
             df: Optional DataFrame containing the source data
