@@ -1,5 +1,5 @@
 import json
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Dict, Optional
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import (
@@ -78,22 +78,6 @@ class LogEntry(ABC):
         Returns:
             Dict[str, Any]: Dictionary representation of the log entry
         """
-
-    # TODO: validate both _df and _log_entry_dict
-    # def validate_schema(self) -> None:
-    #     """
-    #     Validate that all required fields are present in the log entry.
-
-    #     Raises:
-    #         ValueError: If any required fields are missing
-    #     """
-    #     missing_keys = [
-    #         f.name for f in self._target_schema
-    #         if f.name not in self._log_entry_dict
-    #     ]
-    #     if missing_keys:
-    #         keys_str = '\n'.join(missing_keys)
-    #         raise ValueError(f"The following values are missing from the log entry:\n{keys_str}")
 
 
 class DeltaVersionLogEntry(LogEntry):

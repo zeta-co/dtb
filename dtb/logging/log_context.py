@@ -63,17 +63,6 @@ class LogContext:
         """Get table_path with type hint"""
         return self._data["table_path"]
 
-    def with_fields(self, **kwargs: Any) -> "LogContext":
-        """
-        Create new LogContext with additional fields.
-        Useful for adding context-specific fields without modifying original.
-        """
-        new_data = self._data.copy()
-        new_data.update(kwargs)
-        new_context = LogContext(self.job_id, self.run_id)
-        new_context._data = new_data
-        return new_context
-
     def to_dict(
         self,
         include_fields: Optional[Set[str]] = None,
@@ -98,23 +87,6 @@ class LogContext:
             result = {k: v for k, v in result.items() if k not in exclude_fields}
 
         return result
-
-    def merge(self, other: Union[Dict[str, Any], "LogContext"]) -> "LogContext":
-        """
-        Create new LogContext by merging with another context or dictionary.
-        Useful for combining different contexts.
-        """
-        if isinstance(other, LogContext):
-            other_data = other._data
-        else:
-            other_data = other
-
-        new_data = self._data.copy()
-        new_data.update(other_data)
-
-        new_context = LogContext(self.job_id, self.run_id)
-        new_context._data = new_data
-        return new_context
 
     def __getitem__(self, key: str) -> Any:
         """Enable dictionary-like access: context['field_name']"""

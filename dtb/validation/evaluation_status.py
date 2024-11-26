@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ValidationStatus(Enum):
+class EvaluationStatus(Enum):
     SUCCESS = "SUCCESS"
     WARNING = "WARNING"
     FAILURE = "FAILURE"
