@@ -1,22 +1,16 @@
-from abc import ABC, abstractmethod
-from pyspark.sql import DataFrame, SparkSession
-from .expectation_result import ExpectationResult
+from typing import List
+from pyspark.sql import DataFrame
 from ..utils.name import generate_random_alphanumeric
+from .validation_result import ValidationResult
 
 
-class Expectation(ABC):
-    """
-    Abstract base class for all expectations.
-    Provides common functionality and interface for validation expectations.
-    """
-    _spark: SparkSession
-    _df: DataFrame    
+class Expectation:
+
     id: str
     flag_column: str
 
-    def __init__(self, spark: SparkSession, df: DataFrame) -> None:
-        self._spark = spark
-        self._df = df
+    """Base class for all expectations"""
+    def __init__(self):
         self.id = generate_random_alphanumeric(12)
         self.flag_column = f"_dtb_check_{self.id}"
 
@@ -24,16 +18,6 @@ class Expectation(ABC):
     def type(self) -> str:
         """Return the type of expectation."""
         return self.__class__.__name__
-
-    @abstractmethod
-    def validate(self) -> ExpectationResult:
-        """
-        Core validation logic to be implemented by concrete expectation classes.
-
-        Args:
-            df: DataFrame to validate
-
-        Returns:
-            DataFrame of failed records
-        """
-        pass
+    
+    def validate(self, df: DataFrame) -> ValidationResult:
+        raise NotImplementedError

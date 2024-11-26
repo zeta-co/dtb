@@ -29,10 +29,10 @@ class CheckLogEntryBuilder(ABC):
     @abstractmethod
     def build(
         self,
-        check: "Check",
-        context: LogContext,
+        check_description: str,
+        log_context: LogContext,
         result: ExpectationResult,
-    ) -> LogEntry:
+    ) -> List[LogEntry]:
         pass
 
 
@@ -53,7 +53,7 @@ class CheckLogEntry(LogEntry):
             StructField("JobName", StringType()),
             StructField("RunId", StringType()),
             StructField("CheckId", StringType()),
-            StructField("CheckName", StringType()),
+            StructField("CheckDescription", StringType()),
             StructField("Datetime", TimestampType()),
             StructField("TableName", StringType()),
             StructField("TablePath", StringType()),
@@ -77,8 +77,8 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
 
     def build(
         self,
-        check: "Check",
-        context: LogContext,
+        check_description: str,
+        log_context: LogContext,
         result: DataframeSchemaExpectationResult,
     ) -> List[CheckLogEntry]:
         """Build log entries from schema validation check results.
@@ -87,8 +87,8 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
         the expected schema. If the schema check fails, all rows are considered invalid.
 
         Args:
-            check: The schema validation check instance
-            context: Logging context information
+            check_description: The schema validation check description
+            log_context: Logging context information
             result: Results from the schema validation check
 
         Returns:
@@ -99,19 +99,19 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
         return [
             CheckLogEntry(
                 log_entry_dict={
-                    "job_id": context.job_id,
-                    "job_name": context.job_name,
-                    "run_id": context.run_id,
+                    "job_id": log_context.job_id,
+                    "job_name": log_context.job_name,
+                    "run_id": log_context.run_id,
                     "check_id": result.expectation_id,
-                    "check_name": check.name,
+                    "check_description": check_description,
                     "datetime": datetime.datetime.now(),
-                    "table_name": context.table_name,
-                    "table_path": context.table_path,
+                    "table_name": log_context.table_name,
+                    "table_path": log_context.table_path,
                     "total_row_count": total_row_count,
                     "invalid_row_count": 0 if result.passed else total_row_count,
                     "passed": result.passed,
                     "extra_info": json.dumps(
-                        context.to_dict().update(
+                        log_context.to_dict().update(
                             {
                                 "expected_columns": result.expected_columns,
                                 "source_columns": result.source_columns,
@@ -125,7 +125,7 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
         ]
 
 
-class RecordCheckLogEntryBuilder(CheckLogEntryBuilder):
+class DataframeRecordCheckLogEntryBuilder(CheckLogEntryBuilder):
     """Builder for creating log entries from record-level validation check results.
 
     This builder handles results from checks that validate individual records,
@@ -134,18 +134,18 @@ class RecordCheckLogEntryBuilder(CheckLogEntryBuilder):
 
     def build(
         self,
-        check: "Check",
-        context: LogContext,
+        check_description: str,
+        log_context: LogContext,
         result: DataframeExpectationResult,
-    ) -> CheckLogEntry:
+    ) -> List[CheckLogEntry]:
         """Build log entries from record-level validation results.
 
         Creates log entries summarizing validation results, with options to group
         results by source file or aggregate across the entire DataFrame.
 
         Args:
-            check: The record validation check instance
-            context: Logging context information
+            check_description: The record validation check description
+            log_context: Logging context information
             result: Results from the record validation check
 
         Returns:
@@ -159,7 +159,7 @@ class RecordCheckLogEntryBuilder(CheckLogEntryBuilder):
               in the result DataFrame
             - A check is considered passed if there are no invalid rows in the group
         """
-        if context.get("group_by_source_file"):
+        if log_context.get("group_by_source_file"):
             summary = (
                 result.df.groupBy("_source_file")
                 .agg(
@@ -180,23 +180,29 @@ class RecordCheckLogEntryBuilder(CheckLogEntryBuilder):
         return [
             CheckLogEntry(
                 log_entry_dict={
-                    "job_id": context.job_id,
-                    "job_name": context.job_name,
-                    "run_id": context.run_id,
+                    "job_id": log_context.job_id,
+                    "job_name": log_context.job_name,
+                    "run_id": log_context.run_id,
                     "check_id": result.expectation_id,
-                    "check_name": check.name,
+                    "check_description": check_description,
                     "datetime": datetime.datetime.now(),
-                    "table_name": context.table_name,
+                    "table_name": log_context.table_name,
                     "table_path": (
                         row["_source_file"]
-                        if context.get("group_by_source_file")
-                        else context.table_path
+                        if log_context.get("group_by_source_file")
+                        else log_context.table_path
                     ),
                     "total_row_count": row["total_rows"],
                     "invalid_row_count": row["invalid_rows"],
                     "passed": True if row["invalid_rows"] == 0 else False,
-                    "extra_info": json.dumps(context.to_dict()),
+                    "extra_info": json.dumps(log_context.to_dict()),
                 }
             )
             for row in summary
         ]
+
+
+result_to_entry_builder_mapping = {
+    "DataframeSchemaExpectationResult": DataframeSchemaCheckLogEntryBuilder,
+    "DataframeExpectationResult": DataframeRecordCheckLogEntryBuilder,
+}
