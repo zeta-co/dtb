@@ -1,5 +1,4 @@
-from typing import Dict, List, Optional
-from pyspark.sql import SparkSession
+from typing import List
 from .log_entry import LogEntry
 from .log_writer import LogWriter
 
@@ -20,15 +19,7 @@ class LogService:
         buffer_size: Maximum number of entries to buffer before automatic flush
     """
 
-    def __init__(self, spark: SparkSession, buffer_size: int = 1000):
-        """
-        Initialize a new logging service.
-
-        Args:
-            spark: Active SparkSession
-            buffer_size: Maximum number of entries to buffer before automatic flush
-        """
-        self.spark = spark
+    def __init__(self):
         self.writers: List[LogWriter] = []
         self.buffer: List[LogEntry] = []
 

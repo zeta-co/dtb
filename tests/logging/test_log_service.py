@@ -27,8 +27,8 @@ def spark():
         .getOrCreate()
 
 @pytest.fixture
-def log_service(spark):
-    return LogService(spark)
+def log_service():
+    return LogService()
 
 def test_log_service_add_writer(log_service):
     writer = MockLogWriter()

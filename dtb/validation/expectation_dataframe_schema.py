@@ -1,21 +1,25 @@
 from typing import Optional
 from .expectation import Expectation
-from .expectation_result_dataframe_schema import DataframeSchemaExpectationResult
+from .validation_result_dataframe_schema import DataframeSchemaValidationResult
 from ..model.schema_version import SchemaVersion
 
 
 class DataframeSchemaExpectation(Expectation):
 
+    @property
+    def value_column(self) -> str:
+        return "UNKNOWN_SOMETHING_WRONG"
+
     def validate(
         self, schema_version: SchemaVersion, by_order: Optional[bool] = True
-    ) -> DataframeSchemaExpectationResult:
+    ) -> DataframeSchemaValidationResult:
         """Helper function to compare column names and identify differences.
 
         Args:
             by_order: If True, checks column order as well
 
         Returns:
-            ExpectationResult containing:
+            ValidationResult containing:
                 - Boolean indicating if schemas match
                 - Set of missing columns
                 - Set of extra columns
@@ -32,7 +36,7 @@ class DataframeSchemaExpectation(Expectation):
 
         # If not checking order, only set comparison matters
         if not by_order:
-            return DataframeSchemaExpectationResult(
+            return DataframeSchemaValidationResult(
                 expectation_id=self.id,
                 df=self._df,
                 passed=missing_columns == extra_columns == set(),
@@ -43,7 +47,7 @@ class DataframeSchemaExpectation(Expectation):
             )
 
         # When checking order, lists must be identical
-        return DataframeSchemaExpectationResult(
+        return DataframeSchemaValidationResult(
             expectation_id=self.id,
             df=self._df,
             passed=source_columns == expected_columns,

@@ -1,19 +1,12 @@
 import datetime
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import List
 import pyspark.sql.functions as F
-from pyspark.sql.types import (
-    BooleanType,
-    LongType,
-    StructType,
-    StructField,
-    StringType,
-    TimestampType,
-)
-from .expectation_result import ExpectationResult
-from .expectation_result_dataframe_schema import DataframeSchemaExpectationResult
-from .expectation_result_dataframe import DataframeExpectationResult
+from .check_log_entry import CheckLogEntry
+from .validation_result import ValidationResult
+from .validation_result_dataframe_schema import DataframeSchemaValidationResult
+from .validation_result_dataframe import DataframeValidationResult
 from ..logging.log_entry import LogEntry
 from ..logging.log_context import LogContext
 
@@ -31,41 +24,9 @@ class CheckLogEntryBuilder(ABC):
         self,
         check_description: str,
         log_context: LogContext,
-        result: ExpectationResult,
+        result: ValidationResult,
     ) -> List[LogEntry]:
         pass
-
-
-class CheckLogEntry(LogEntry):
-    """A log entry specifically for recording check results.
-
-    This class defines the structure and schema for logging check results,
-    including job information, check details, and validation statistics.
-
-    Attributes:
-        _target_schema: PySpark schema definition for the log entry structure,
-            containing fields for job metadata, check results, and statistics.
-    """
-
-    _target_schema: StructType = StructType(
-        [
-            StructField("JobId", StringType()),
-            StructField("JobName", StringType()),
-            StructField("RunId", StringType()),
-            StructField("CheckId", StringType()),
-            StructField("CheckDescription", StringType()),
-            StructField("Datetime", TimestampType()),
-            StructField("TableName", StringType()),
-            StructField("TablePath", StringType()),
-            StructField("TotalRowCount", LongType()),
-            StructField("InvalidRowCount", LongType()),
-            StructField("Passed", BooleanType()),
-            StructField("ExtraInfo", StringType()),
-        ]
-    )
-
-    def output_dict(self) -> Dict[str, Any]:
-        return self._log_entry_dict
 
 
 class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
@@ -79,7 +40,7 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
         self,
         check_description: str,
         log_context: LogContext,
-        result: DataframeSchemaExpectationResult,
+        result: DataframeSchemaValidationResult,
     ) -> List[CheckLogEntry]:
         """Build log entries from schema validation check results.
 
@@ -96,6 +57,15 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
                 validation results
         """
         total_row_count = result.df.count()
+        context_dict = log_context.to_dict()
+        context_dict.update(
+            {
+                "expected_columns": result.expected_columns,
+                "source_columns": result.source_columns,
+                "missing_columns": result.missing_columns,
+                "extra_columns": result.extra_columns,
+            }
+        )
         return [
             CheckLogEntry(
                 log_entry_dict={
@@ -104,22 +74,14 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
                     "run_id": log_context.run_id,
                     "check_id": result.expectation_id,
                     "check_description": check_description,
+                    "date": datetime.datetime.today(),
                     "datetime": datetime.datetime.now(),
                     "table_name": log_context.table_name,
                     "table_path": log_context.table_path,
                     "total_row_count": total_row_count,
                     "invalid_row_count": 0 if result.passed else total_row_count,
                     "passed": result.passed,
-                    "extra_info": json.dumps(
-                        log_context.to_dict().update(
-                            {
-                                "expected_columns": result.expected_columns,
-                                "source_columns": result.source_columns,
-                                "missing_columns": result.missing_columns,
-                                "extra_columns": result.extra_columns,
-                            }
-                        )
-                    ),
+                    "extra_info": json.dumps(context_dict),
                 }
             )
         ]
@@ -136,7 +98,7 @@ class DataframeRecordCheckLogEntryBuilder(CheckLogEntryBuilder):
         self,
         check_description: str,
         log_context: LogContext,
-        result: DataframeExpectationResult,
+        result: DataframeValidationResult,
     ) -> List[CheckLogEntry]:
         """Build log entries from record-level validation results.
 
@@ -203,6 +165,6 @@ class DataframeRecordCheckLogEntryBuilder(CheckLogEntryBuilder):
 
 
 result_to_entry_builder_mapping = {
-    "DataframeSchemaExpectationResult": DataframeSchemaCheckLogEntryBuilder,
-    "DataframeExpectationResult": DataframeRecordCheckLogEntryBuilder,
+    "DataframeSchemaValidationResult": DataframeSchemaCheckLogEntryBuilder,
+    "DataframeValidationResult": DataframeRecordCheckLogEntryBuilder,
 }

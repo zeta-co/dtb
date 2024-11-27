@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
-from .expectation_result import ExpectationResult
+from .validation_result import ValidationResult
 
 
 @dataclass
-class DataframeExpectationResult(ExpectationResult):
+class DataframeValidationResult(ValidationResult):
 
     flag_column: str
     value_column: Optional[str] = None

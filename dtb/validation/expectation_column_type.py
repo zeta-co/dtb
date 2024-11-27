@@ -2,7 +2,7 @@ from typing import Optional
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from .expectation import Expectation
-from .expectation_result_dataframe import DataframeExpectationResult
+from .validation_result_dataframe import DataframeValidationResult
 
 
 class ColumnTypeExpectation(Expectation):
@@ -52,24 +52,28 @@ class ColumnTypeExpectation(Expectation):
         Raises:
             ValueError: If date_format is not provided for date/timestamp validation
         """
-        super().__init__(spark, df)
+        super().__init__()
         self.column_name = column_name
         self.target_type = target_type
         self.date_format = date_format
         if target_type in ("date", "timestamp") and not date_format:
             raise ValueError(f"date_format is required for [{target_type}] validation")
 
-    def validate(self) -> DataframeExpectationResult:
+    @property
+    def value_column(self) -> str:
+        return self.column_name
+
+    def validate(self, df: DataFrame) -> DataframeValidationResult:
         """
         Validates if values in the specified column can be cast to the target type.
 
         The method:
         1. Attempts to cast the column to the target type
         2. Flags values that cannot be cast successfully
-        3. Returns a DataframeExpectationResult with the validation results
+        3. Returns a DataframeValidationResult with the validation results
 
         Returns:
-            DataframeExpectationResult: Contains validation results including:
+            DataframeValidationResult: Contains validation results including:
                 - Original DataFrame with added flag column
                 - Name of the flag column
                 - Name of the column being validated
@@ -80,12 +84,12 @@ class ColumnTypeExpectation(Expectation):
             - NULL values are considered valid and will be flagged as True
             - The original column values are preserved; casting is only used for validation
         """
-        if self.column_name not in self._df.columns:
+        if self.column_name not in df.columns:
             raise ValueError(f"Column {self.column_name} not found in DataFrame")
 
         # Handle date and timestamp parsing with format
         if self.target_type in ("date", "timestamp"):
-            self._df = self._df.withColumn(
+            df = df.withColumn(
                 f"__temp_cast_{self.id}",
                 F.to_timestamp(F.col(self.column_name), self.date_format)
                 if self.target_type == "timestamp"
@@ -93,13 +97,13 @@ class ColumnTypeExpectation(Expectation):
             )
         else:
             # For other types, use standard casting
-            self._df = self._df.withColumn(
+            df = df.withColumn(
                 f"__temp_cast_{self.id}",
                 F.col(self.column_name).cast(self.target_type)
             )
 
         # Add flag column with configurable NULL handling
-        self._df = self._df.withColumn(
+        df = df.withColumn(
             self.flag_column,
             F.when(
                 F.col(self.column_name).isNull(),
@@ -116,9 +120,9 @@ class ColumnTypeExpectation(Expectation):
             else self.target_type
         )
         
-        return DataframeExpectationResult(
+        return DataframeValidationResult(
             expectation_id=self.id,
-            df=self._df,
+            df=df,
             flag_column=self.flag_column,
             value_column=self.column_name,
             message=f"Values not convertible to type {type_name}",

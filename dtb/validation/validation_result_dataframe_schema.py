@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
 from typing import List
-from .expectation_result import ExpectationResult
+from .validation_result import ValidationResult
 
 
 @dataclass
-class DataframeSchemaExpectationResult(ExpectationResult):
+class DataframeSchemaValidationResult(ValidationResult):
 
     passed: bool
     source_columns: List[str]

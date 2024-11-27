@@ -1,10 +1,10 @@
-
-from functools import reduce
 from typing import List
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType
 from .log_entry import LogEntry
 from .log_writer import LogWriter
-from ..utils.delta_table import create_delta_table_if_not_exists
+from ..model.delta_table_config import DeltaTableConfig
+from ..model.delta_table_manager import DeltaTableManager
 
 
 class DeltaTableLogWriter(LogWriter):
@@ -15,16 +15,22 @@ class DeltaTableLogWriter(LogWriter):
     table creation if it doesn't exist and schema validation.
     """
 
-    def __init__(self, spark: SparkSession, table_name: str):
+    def __init__(
+        self, spark: SparkSession, config: DeltaTableConfig, schema: StructType
+    ):
         """
-        Initialise a new Delta table log writer.
+        Initialize the log writer with table configuration.
 
         Args:
             spark: Active SparkSession
-            table_name: Name of the target Delta table
+            config: DeltaTableConfig instance
+            schema: StructType schema for the table
         """
         self._spark = spark
-        self._table_name = table_name
+        self._config = config
+        self._schema = schema
+        self._table_manager = DeltaTableManager(spark)
+        self._table_manager.create_if_not_exists(self._schema, self._config)
 
     def write(self, log_entries: List[LogEntry]) -> None:
         """
@@ -44,12 +50,11 @@ class DeltaTableLogWriter(LogWriter):
             raise ValueError("All entries must be LogEntry instances")
 
         try:
-            schema = log_entries[0]._target_schema
-            create_delta_table_if_not_exists(self._spark, self._table_name, schema)
-
-            dfs = [e.output_df(self._spark) for e in log_entries]
-            if dfs:
-                df = reduce(DataFrame.unionByName, dfs)
-                df.write.format("delta").mode("append").saveAsTable(self._table_name)
+            if log_entries[0]._log_entry_dict:
+                dicts = [e.output_df() for e in log_entries]
+                df = self._spark.createDataFrame(dicts, self._schema)
+                df.write.format("delta").mode("append").saveAsTable(self._config.full_table_name)
+                return None
+            # TODO if log entry is df
         except Exception as e:
             raise RuntimeError(f"Failed to write to Delta table: {str(e)}") from e

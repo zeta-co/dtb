@@ -115,7 +115,7 @@ class TablePropertyManager:
         return properties
 
     def sync_properties(self) -> None:
-        """Synchronizes table properties with validation."""
+        """Synchronises table properties with validation."""
         if not self.metadata.is_table:
             return
 
@@ -130,7 +130,7 @@ class TablePropertyManager:
             )
             raise ValueError(f"Invalid Delta table properties:\n{error_msg}")
 
-        # Proceed with property synchronization
+        # Proceed with property synchronisation
         current_properties = self._get_target_properties()
         statements = self._generate_alter_statements(
             current_properties, self._parse_metadata_properties()

@@ -1,9 +1,9 @@
 from typing import Tuple
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
 from .expectation import Expectation
-from .expectation_result_dataframe import DataframeExpectationResult
+from .validation_result_dataframe import DataframeValidationResult
 
 
 class CorruptRecordsExpectation(Expectation):
@@ -15,8 +15,6 @@ class CorruptRecordsExpectation(Expectation):
     that PySpark creates when it encounters parsing errors during data loading.
 
     Attributes:
-        _df (DataFrame): The input PySpark DataFrame to validate
-        _spark (SparkSession): The active Spark session
         flag_column (str): Name of the column to store validation results
 
     Notes:
@@ -25,7 +23,13 @@ class CorruptRecordsExpectation(Expectation):
         - Corrupt records have non-NULL values in the '_corrupt_record' column
     """
 
-    def _split_df(self) -> Tuple[DataFrame, DataFrame]:
+    @property
+    def value_column(self) -> str:
+        return "_corrupt_record"
+
+    def _split_df(
+        self, spark: SparkSession, df: DataFrame
+    ) -> Tuple[DataFrame, DataFrame]:
         """
         Splits the input DataFrame into valid and corrupt record DataFrames.
 
@@ -38,16 +42,16 @@ class CorruptRecordsExpectation(Expectation):
                 - First DataFrame containing only valid records (no '_corrupt_record' column)
                 - Second DataFrame containing only corrupt records (only '_corrupt_record' column)
         """
-        if "_corrupt_record" in self._df.columns:
-            valid_records = self._df.filter(F.col("_corrupt_record").isNull()).drop(
+        if "_corrupt_record" in df.columns:
+            valid_records = df.filter(F.col("_corrupt_record").isNull()).drop(
                 "_corrupt_record"
             )
-            corrupt_records = self._df.filter(
-                F.col("_corrupt_record").isNotNull()
-            ).select("_corrupt_record")
+            corrupt_records = df.filter(F.col("_corrupt_record").isNotNull()).select(
+                "_corrupt_record"
+            )
         else:
-            valid_records = self._df
-            corrupt_records = self._spark.createDataFrame(
+            valid_records = df
+            corrupt_records = spark.createDataFrame(
                 [],
                 StructType(
                     [
@@ -57,7 +61,7 @@ class CorruptRecordsExpectation(Expectation):
             )
         return valid_records, corrupt_records
 
-    def validate(self) -> DataframeExpectationResult:
+    def validate(self, spark: SparkSession, df: DataFrame) -> DataframeValidationResult:
         """
         Validates the DataFrame for corrupt records and returns the validation results.
 
@@ -71,7 +75,7 @@ class CorruptRecordsExpectation(Expectation):
            - Returns a basic result with just the flag column
 
         Returns:
-            DataframeExpectationResult: Contains validation results including:
+            DataframeValidationResult: Contains validation results including:
                 - Original DataFrame with added flag column
                 - Name of the flag column
                 - Name of the Value column ('_corrupt_record')
@@ -83,26 +87,21 @@ class CorruptRecordsExpectation(Expectation):
             The validation is considered passed only if there are no corrupt records
             (invalid_count = 0) when the '_corrupt_record' column is present.
         """
-        if "_corrupt_record" in self._df.columns:
-            self._df = self._df.withColumn(
+        if "_corrupt_record" in df.columns:
+            df = df.withColumn(
                 self.flag_column,
                 F.when(F.col("_corrupt_record").isNull(), True).otherwise(False),
             )
-            _, corrupt_records = self._split_df()
-            invalid_count = corrupt_records.count()
-            passed = True if invalid_count == 0 else False
-            return DataframeExpectationResult(
+            return DataframeValidationResult(
                 expectation_id=self.id,
-                df=self._df,
+                df=df,
                 flag_column=self.flag_column,
                 value_column="_corrupt_record",
-                invalid_count=invalid_count,
-                passed=passed,
                 message="Corrupt record",
             )
         else:
-            return DataframeExpectationResult(
+            return DataframeValidationResult(
                 expectation_id=self.id,
-                df=self._df,
+                df=df,
                 flag_column=self.flag_column,
             )

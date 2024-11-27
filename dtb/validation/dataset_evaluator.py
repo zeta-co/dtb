@@ -1,20 +1,27 @@
-from typing import List
-from pyspark.sql import DataFrame
+from typing import List, Union
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql import types as T
 from .check import Check
+from .check_log_entry import CheckLogEntry
 from ..logging.log_context import LogContext
+from ..logging.log_service import LogService
+from ..logging.log_writer_delta_table import DeltaTableLogWriter
+from ..model.delta_table_config import DeltaTableConfig
+from ..model.table import Table
+from ..utils.pyspark import aggregate_bool_columns, check_failures_threshold
 
 
 class DatasetEvaluator:
     def __init__(
         self,
+        spark: SparkSession,
         log_context: LogContext,
         dataset_name: str,
         check_summary_table: str,
         invalid_record_table: str,
-        threshold: float = 0.05,
+        threshold: Union[int, float] = 0.05,
     ):
+        self.spark = spark
         self.log_context = log_context
         self.dataset_name = dataset_name
         self.check_summary_table = check_summary_table
@@ -27,77 +34,75 @@ class DatasetEvaluator:
         Runs all checks and returns DataFrame with validation results
         """
         result_df = df
+        checks_map = {}
         for check in checks:
+            checks_map[check.id] = check
             result_df, log_entries = check.process_result(result_df, self.log_context)
             self.log_entries.extend(log_entries)
 
-        # Add consolidated validation results column
+        # Setup check log table
+        check_log_table_config = DeltaTableConfig(
+            Table("lg.checks"),
+            partition_columns=["JobName", "Date", "CheckId"],
+            properties={
+                'delta.autoOptimize.optimizeWrite': 'true',
+                'delta.autoOptimize.autoCompact': 'true',
+                'delta.logRetentionDuration': 'interval 90 days',
+                'delta.appendOnly': 'true',
+                'delta.enableParallelFileListings': 'false',
+                'delta.deletedFileRetentionDuration': 'interval 7 days'
+            }
+        )
+        
+        # Log check summaries to Delta table
+        writer = DeltaTableLogWriter(
+            spark=self.spark,
+            config=check_log_table_config,
+            schema=CheckLogEntry._target_schema
+        )
+        check_log_service = LogService()
+        check_log_service.add_writer(writer)
+        for e in self.log_entries:
+            check_log_service.add_log_entry(e)
+        check_log_service.flush()
+
+        # Create a flag showing if row passed or not
+        result_df = aggregate_bool_columns(
+            result_df, "dtb_check_", "dtb_all_checks_passed"
+        )
+
+        # Create a column for validation result details
         failed_checks = []
         for check in checks:
-            failed_checks.append(
-                F.when(
-                    ~F.col(f"{check.check_id}_passed"),
-                    F.struct(
-                        F.lit(check.check_id).alias("check_id"),
-                        F.col(f"{check.check_id}_reason").alias("reason"),
-                        F.col(f"{check.check_id}_value").alias("value"),
-                    ),
+            if "SchemaExpectation" not in check.expectation.type:
+                failed_checks.append(
+                    F.when(
+                        ~F.col(check.expectation.flag_column),
+                        F.struct(
+                            F.lit(check.id).alias("check_id"),
+                            F.lit(check.description).alias("check_description"),
+                            F.col(check.expectation.value_column)
+                            .cast("string")
+                            .alias("value"),
+                        ),
+                    )
                 )
-            )
-
         result_df = result_df.withColumn(
-            "failed_validations",
+            "dtb_failed_checks",
             F.to_json(F.array_remove(F.array(*failed_checks), F.lit(None))),
         )
 
-        # Log failures to Delta table
-        self._log_failures(result_df)
-
-        # Log summaries to Delta table
-        self._log_summaries()
+        # # Log failures to Delta table
+        # failures_df = df.filter(~F.col("dtb_all_checks_passed"))
+        # failures_df.write.format("delta").mode("append").save(self.failures_table_path)
 
         # Check if we should fail the job
-        self._check_failure_threshold()
+        within_threshold = check_failures_threshold(
+            result_df, self.threshold, "dtb_all_checks_passed"
+        )
+        if not within_threshold:
+            raise ValueError(
+                "Too many rows failing one or more checks! Please refer to logs."
+            )
 
         return result_df
-
-    def _log_failures(self, df: DataFrame):
-        # Select records with at least one failed validation
-        failures_df = df.filter(
-            F.size(
-                F.from_json(
-                    "failed_validations",
-                    T.ArrayType(
-                        T.StructType(
-                            [
-                                T.StructField("check_id", T.StringType()),
-                                T.StructField("reason", T.StringType()),
-                                T.StructField("value", T.StringType()),
-                            ]
-                        )
-                    ),
-                )
-            )
-            > 0
-        )
-
-        # Write to Delta table
-        failures_df.write.format("delta").mode("append").save(self.failures_table_path)
-
-    def _log_summaries(self):
-        # Convert summaries to DataFrame
-        summary_rows = [summary.to_dict() for summary in self.check_summaries]
-        summary_df = spark.createDataFrame(summary_rows)
-
-        # Write to Delta table
-        summary_df.write.format("delta").mode("append").save(self.summary_table_path)
-
-    def _check_failure_threshold(self):
-        # Check if any check exceeds its failure threshold
-        for summary in self.check_summaries:
-            if summary.passing_rate < (1 - self.failure_threshold):
-                raise ValueError(
-                    f"Check {summary.check_id} ({summary.check_name}) "
-                    f"failed with passing rate {summary.passing_rate:.2%} "
-                    f"(threshold: {1 - self.failure_threshold:.2%})"
-                )

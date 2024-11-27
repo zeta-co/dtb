@@ -5,8 +5,8 @@ from pyspark.sql import DataFrame
 
 @dataclass
 class ValidationResult:
-    passed: bool
-    df: Optional[DataFrame] = None
+    expectation_id: str
+    df: DataFrame
 
     def __bool__(self):
         return self.passed
