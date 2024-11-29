@@ -1,0 +1,50 @@
+site_name: DTB Documentation
+site_description: Documentation for the DTB
+repo_url: #
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - navigation.top
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+            - import sys
+            - sys.path.append(".")
+          selection:
+            docstring_style: google
+          rendering:
+            show_source: true
+            show_root_heading: true
+            show_if_no_docstring: true
+            heading_level: 2
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Getting Started: getting-started.md
+    - Examples: examples.md
+  - Reference:
+    - IO:
+      - Overview: io/index.md
+    - Logging:
+      - Overview: logging/index.md
+    - Model:
+      - Overview: model/index.md
+    - Rollback:
+      - Overview: rollback/index.md
+    - Tracking:
+      - Overview: tracking/index.md
+    - Utils:
+      - Overview: utils/index.md
+    - Validation:
+      - Overview: validation/index.md
