@@ -1,7 +1,7 @@
 import os
 from typing import Callable
-from ..model.io.input import Input
-from ..model.io.output import Output
+from .input import Input
+from .output import Output
 
 
 def io(*args, **kwargs):
