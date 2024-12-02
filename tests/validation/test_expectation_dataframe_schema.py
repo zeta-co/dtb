@@ -1,253 +1,181 @@
 import pytest
-from unittest.mock import Mock
+from datetime import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
-
-from dtb.validation.expectation_dataframe_schema import DataframeSchemaExpectation
-from dtb.validation.validation_result_dataframe_schema import (
-    DataframeSchemaValidationResult,
-)
 from dtb.model.schema_version import SchemaVersion
+from dtb.validation.expectation_dataframe_schema import DataframeSchemaExpectation
 
 
-class TestDataframeSchemaExpectation:
-    @pytest.fixture(scope="session")
-    def spark(self):
-        """Create a SparkSession for testing"""
-        return (
-            SparkSession.builder.appName("TestDataframeSchemaExpectation")
-            .master("local[1]")
-            .getOrCreate()
-        )
+@pytest.fixture(scope="session")
+def spark():
+    """Create a SparkSession for testing."""
+    return SparkSession.builder.master("local[1]").appName("unit-tests").getOrCreate()
 
-    @pytest.fixture
-    def expectation(self):
-        """Create a DataframeSchemaExpectation instance"""
-        return DataframeSchemaExpectation()
 
-    @pytest.fixture
-    def mock_schema_version(self):
-        """Create a mock SchemaVersion"""
-        schema_version = Mock(spec=SchemaVersion)
-        schema_version.to_struct_type.return_value = StructType(
-            [
-                StructField("id", IntegerType(), True),
-                StructField("name", StringType(), True),
-                StructField("value", StringType(), True),
-            ]
-        )
-        return schema_version
+@pytest.fixture
+def schema_version():
+    """Create a mock SchemaVersion with a simple schema."""
+    schema = StructType(
+        [
+            StructField("id", StringType(), True),
+            StructField("name", StringType(), True),
+            StructField("age", IntegerType(), True),
+        ]
+    )
 
-    def test_value_column_property(self, expectation):
-        """Test value_column property returns expected value"""
-        assert expectation.value_column == "UNKNOWN_SOMETHING_WRONG"
+    # Create a minimal SchemaVersion instance
+    sv = SchemaVersion(
+        start_date=datetime(2024, 1, 1),
+        end_date=datetime(2025, 1, 1),
+        columns={"id": "string", "name": "string", "age": "integer"},
+        version=1,
+    )
+    sv.to_struct_type = lambda: schema
+    return sv
 
-    def test_validate_exact_match(self, spark, expectation, mock_schema_version):
-        """Test validation with exact column match"""
-        # Create DataFrame with matching schema
-        df = spark.createDataFrame([], mock_schema_version.to_struct_type())
-        expectation._df = df
 
-        result = expectation.validate(mock_schema_version)
+def create_test_df(spark, columns):
+    """Helper to create a DataFrame with specified columns."""
+    data = [tuple(f"val{i}" for i in range(len(columns)))]
+    return spark.createDataFrame(data, columns)
 
-        assert isinstance(result, DataframeSchemaValidationResult)
-        assert result.passed
-        assert result.source_columns == ["id", "name", "value"]
-        assert result.expected_columns == ["id", "name", "value"]
-        assert not result.missing_columns
-        assert not result.extra_columns
 
-    def test_validate_missing_columns(self, spark, expectation, mock_schema_version):
-        """Test validation with missing columns"""
-        # Create DataFrame with missing column
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("id", IntegerType(), True),
-                    StructField("name", StringType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_init():
+    """Test initialization of DataframeSchemaExpectation."""
+    sv = SchemaVersion(
+        start_date=datetime(2024, 1, 1),
+        end_date=datetime(2025, 1, 1),
+        columns={"id": "string"},
+        version=1,
+    )
+    expectation = DataframeSchemaExpectation(sv)
+    assert expectation.schema_version == sv
+    assert expectation.by_order is True
 
-        result = expectation.validate(mock_schema_version)
+    expectation_unordered = DataframeSchemaExpectation(sv, by_order=False)
+    assert expectation_unordered.by_order is False
 
-        assert not result.passed
-        assert "value" in result.missing_columns
-        assert not result.extra_columns
 
-    def test_validate_extra_columns(self, spark, expectation, mock_schema_version):
-        """Test validation with extra columns"""
-        # Create DataFrame with extra column
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("id", IntegerType(), True),
-                    StructField("name", StringType(), True),
-                    StructField("value", StringType(), True),
-                    StructField("extra", StringType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_validate_exact_match(spark, schema_version):
+    """Test validation with exactly matching columns."""
+    df = create_test_df(spark, ["id", "name", "age"])
+    expectation = DataframeSchemaExpectation(schema_version)
 
-        result = expectation.validate(mock_schema_version)
+    result = expectation.validate(df)
+    assert result.passed is True
+    assert result.missing_columns == set()
+    assert result.extra_columns == set()
+    assert result.source_columns == ["id", "name", "age"]
+    assert result.expected_columns == ["id", "name", "age"]
 
-        assert not result.passed
-        assert "extra" in result.extra_columns
-        assert not result.missing_columns
 
-    def test_validate_exclude_special_columns(
-        self, spark, expectation, mock_schema_version
-    ):
-        """Test validation properly excludes _corrupt_record and _source_file columns"""
-        # Create DataFrame with special columns
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("id", IntegerType(), True),
-                    StructField("name", StringType(), True),
-                    StructField("value", StringType(), True),
-                    StructField("_corrupt_record", StringType(), True),
-                    StructField("_source_file", StringType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_validate_missing_columns(spark, schema_version):
+    """Test validation with missing columns."""
+    df = create_test_df(spark, ["id", "name"])  # missing 'age'
+    expectation = DataframeSchemaExpectation(schema_version)
 
-        result = expectation.validate(mock_schema_version)
+    result = expectation.validate(df)
+    assert result.passed is False
+    assert result.missing_columns == {"age"}
+    assert result.extra_columns == set()
 
-        assert result.passed
-        assert "_corrupt_record" not in result.source_columns
-        assert "_source_file" not in result.source_columns
-        assert not result.extra_columns
-        assert not result.missing_columns
 
-    def test_validate_different_order_with_order_check(
-        self, spark, expectation, mock_schema_version
-    ):
-        """Test validation fails when columns are in different order with by_order=True"""
-        # Create DataFrame with columns in different order
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("value", StringType(), True),
-                    StructField("name", StringType(), True),
-                    StructField("id", IntegerType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_validate_extra_columns(spark, schema_version):
+    """Test validation with extra columns."""
+    df = create_test_df(spark, ["id", "name", "age", "email"])  # extra 'email'
+    expectation = DataframeSchemaExpectation(schema_version)
 
-        result = expectation.validate(mock_schema_version, by_order=True)
+    result = expectation.validate(df)
+    assert result.passed is False
+    assert result.missing_columns == set()
+    assert result.extra_columns == {"email"}
 
-        assert not result.passed
-        assert result.source_columns == ["value", "name", "id"]
-        assert result.expected_columns == ["id", "name", "value"]
-        assert not result.missing_columns
-        assert not result.extra_columns
 
-    def test_validate_different_order_without_order_check(
-        self, spark, expectation, mock_schema_version
-    ):
-        """Test validation passes when columns are in different order with by_order=False"""
-        # Create DataFrame with columns in different order
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("value", StringType(), True),
-                    StructField("name", StringType(), True),
-                    StructField("id", IntegerType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_validate_wrong_order(spark, schema_version):
+    """Test validation with correct columns in wrong order."""
+    df = create_test_df(
+        spark, ["name", "age", "id"]
+    )  # correct columns, different order
 
-        result = expectation.validate(mock_schema_version, by_order=False)
+    # With order checking
+    ordered_expectation = DataframeSchemaExpectation(schema_version, by_order=True)
+    ordered_result = ordered_expectation.validate(df)
+    assert ordered_result.passed is False
 
-        assert result.passed
-        assert set(result.source_columns) == set(result.expected_columns)
-        assert not result.missing_columns
-        assert not result.extra_columns
+    # Without order checking
+    unordered_expectation = DataframeSchemaExpectation(schema_version, by_order=False)
+    unordered_result = unordered_expectation.validate(df)
+    assert unordered_result.passed is True
 
-    def test_validate_mixed_issues(self, spark, expectation, mock_schema_version):
-        """Test validation with both missing and extra columns"""
-        # Create DataFrame with both missing and extra columns
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("id", IntegerType(), True),
-                    StructField("extra1", StringType(), True),
-                    StructField("extra2", StringType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
 
-        result = expectation.validate(mock_schema_version)
+def test_validate_exclude_special_columns(spark, schema_version):
+    """Test that special columns are excluded from validation."""
+    df = create_test_df(spark, ["id", "name", "age", "_corrupt_record", "_source_file"])
+    expectation = DataframeSchemaExpectation(schema_version)
 
-        assert not result.passed
-        assert {"name", "value"} == result.missing_columns
-        assert {"extra1", "extra2"} == result.extra_columns
+    result = expectation.validate(df)
+    assert result.passed is True
+    assert "_corrupt_record" not in result.source_columns
+    assert "_source_file" not in result.source_columns
 
-    def test_validate_empty_expected_schema(self, spark, expectation):
-        """Test validation against empty expected schema"""
-        # Create mock schema version with empty schema
-        empty_schema_version = Mock(spec=SchemaVersion)
-        empty_schema_version.to_struct_type.return_value = StructType([])
 
-        # Create DataFrame with some columns
-        df = spark.createDataFrame(
-            [],
-            StructType(
-                [
-                    StructField("id", IntegerType(), True),
-                    StructField("name", StringType(), True),
-                ]
-            ),
-        )
-        expectation._df = df
+def test_validate_different_columns(spark, schema_version):
+    """Test validation with both missing and extra columns."""
+    df = create_test_df(
+        spark, ["id", "email", "phone"]
+    )  # missing 'name', 'age', extra 'email', 'phone'
+    expectation = DataframeSchemaExpectation(schema_version)
 
-        result = expectation.validate(empty_schema_version)
+    result = expectation.validate(df)
+    assert result.passed is False
+    assert result.missing_columns == {"name", "age"}
+    assert result.extra_columns == {"email", "phone"}
 
-        assert not result.passed
-        assert not result.missing_columns
-        assert {"id", "name"} == result.extra_columns
 
-    def test_validate_empty_source_schema(
-        self, spark, expectation, mock_schema_version
-    ):
-        """Test validation with empty source DataFrame"""
-        # Create empty DataFrame
-        df = spark.createDataFrame([], StructType([]))
-        expectation._df = df
+def test_validate_empty_dataframe_schema(spark):
+    """Test validation with empty schema."""
+    empty_schema_version = SchemaVersion(
+        start_date=datetime(2024, 1, 1),
+        end_date=datetime(2025, 1, 1),
+        columns={},
+        version=1,
+    )
+    empty_schema_version.to_struct_type = lambda: StructType([])
 
-        result = expectation.validate(mock_schema_version)
+    df = create_test_df(spark, ["id", "name"])
+    expectation = DataframeSchemaExpectation(empty_schema_version)
 
-        assert not result.passed
-        assert {"id", "name", "value"} == result.missing_columns
-        assert not result.extra_columns
+    result = expectation.validate(df)
+    assert result.passed is False
+    assert result.missing_columns == set()
+    assert result.extra_columns == {"id", "name"}
 
-    @pytest.mark.parametrize("by_order", [True, False])
-    def test_validate_identical_schemas_different_modes(
-        self, spark, expectation, mock_schema_version, by_order
-    ):
-        """Test validation with identical schemas in both order modes"""
-        df = spark.createDataFrame([], mock_schema_version.to_struct_type())
-        expectation._df = df
 
-        result = expectation.validate(mock_schema_version, by_order=by_order)
+def test_value_column_property():
+    """Test the value_column property."""
+    sv = SchemaVersion(
+        start_date=datetime(2024, 1, 1),
+        end_date=datetime(2025, 1, 1),
+        columns={"id": "string"},
+        version=1,
+    )
+    expectation = DataframeSchemaExpectation(sv)
+    assert expectation.value_column == "UNKNOWN_SOMETHING_WRONG"
 
-        assert result.passed
-        assert not result.missing_columns
-        assert not result.extra_columns
-        if by_order:
-            assert result.source_columns == result.expected_columns
-        else:
-            assert set(result.source_columns) == set(result.expected_columns)
+
+def test_validation_result_contains_dataframe(spark, schema_version):
+    """Test that validation result contains the input DataFrame."""
+    df = create_test_df(spark, ["id", "name", "age"])
+    expectation = DataframeSchemaExpectation(schema_version)
+
+    result = expectation.validate(df)
+    assert result.df is df
+
+
+def test_validation_result_contains_expectation_id(spark, schema_version):
+    """Test that validation result contains the expectation ID."""
+    df = create_test_df(spark, ["id", "name", "age"])
+    expectation = DataframeSchemaExpectation(schema_version)
+
+    result = expectation.validate(df)
+    assert result.expectation_id == expectation.id

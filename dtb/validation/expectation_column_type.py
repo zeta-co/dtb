@@ -18,46 +18,43 @@ class ColumnTypeExpectation(Expectation):
         _spark (SparkSession): The active Spark session
         column_name (str): Name of the column to validate
         target_type (str): The target type to validate against
-        date_format (Optional[str]): Format pattern for parsing dates/timestamps
+        datetime_format (Optional[str]): Format pattern for parsing dates/timestamps
 
     Example:
         >>> # Validate integers
         >>> df = spark.createDataFrame([("1",), ("2",), ("abc",)], ["value"])
-        >>> expectation = ColumnTypeExpectation(df, "value", int)
-        >>> result = expectation.validate()
+        >>> expectation = ColumnTypeExpectation("value", int)
+        >>> result = expectation.validate(df)
 
         >>> # Validate dates with format
         >>> df = spark.createDataFrame([("2024-01-01",), ("invalid",)], ["date"])
-        >>> expectation = ColumnTypeExpectation(df, "date", date, date_format="yyyy-MM-dd")
-        >>> result = expectation.validate()
+        >>> expectation = ColumnTypeExpectation("date", date, datetime_format="yyyy-MM-dd")
+        >>> result = expectation.validate(df)
     """
 
     def __init__(
         self,
-        spark: SparkSession,
-        df: DataFrame,
         column_name: str,
         target_type: str,
-        date_format: Optional[str] = None,
+        datetime_format: Optional[str] = None,
     ):
         """
         Initialise the ColumnTypeExpectation with a column and target type.
 
         Args:
-            df (DataFrame): The DataFrame to validate
             column_name (str): Name of the column to validate
             target_type (str): The target type to validate against
-            date_format (Optional[str]): Format pattern for parsing dates/timestamps (e.g., "yyyy-MM-dd")
+            datetime_format (Optional[str]): Format pattern for parsing dates/timestamps (e.g., "yyyy-MM-dd")
 
         Raises:
-            ValueError: If date_format is not provided for date/timestamp validation
+            ValueError: If datetime_format is not provided for date/timestamp validation
         """
         super().__init__()
         self.column_name = column_name
         self.target_type = target_type
-        self.date_format = date_format
-        if target_type in ("date", "timestamp") and not date_format:
-            raise ValueError(f"date_format is required for [{target_type}] validation")
+        self.datetime_format = datetime_format
+        if target_type in ("date", "timestamp") and not datetime_format:
+            raise ValueError(f"datetime_format is required for [{target_type}] validation")
 
     @property
     def value_column(self) -> str:
@@ -91,9 +88,9 @@ class ColumnTypeExpectation(Expectation):
         if self.target_type in ("date", "timestamp"):
             df = df.withColumn(
                 f"__temp_cast_{self.id}",
-                F.to_timestamp(F.col(self.column_name), self.date_format)
+                F.to_timestamp(F.col(self.column_name), self.datetime_format)
                 if self.target_type == "timestamp"
-                else F.to_date(F.col(self.column_name), self.date_format)
+                else F.to_date(F.col(self.column_name), self.datetime_format)
             )
         else:
             # For other types, use standard casting
@@ -115,7 +112,7 @@ class ColumnTypeExpectation(Expectation):
         ).drop(f"__temp_cast_{self.id}")
         
         type_name = (
-            f"{self.target_type}[{self.date_format}]"
+            f"{self.target_type}[{self.datetime_format}]"
             if self.target_type in ("date", "timestamp")
             else self.target_type
         )

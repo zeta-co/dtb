@@ -1,4 +1,5 @@
 from typing import Optional
+from pyspark.sql import DataFrame
 from .expectation import Expectation
 from .validation_result_dataframe_schema import DataframeSchemaValidationResult
 from ..model.schema_version import SchemaVersion
@@ -6,17 +7,17 @@ from ..model.schema_version import SchemaVersion
 
 class DataframeSchemaExpectation(Expectation):
 
+    def __init__(self, schema_version: SchemaVersion, by_order: Optional[bool] = True):
+        super().__init__()
+        self.schema_version = schema_version
+        self.by_order = by_order
+
     @property
     def value_column(self) -> str:
         return "UNKNOWN_SOMETHING_WRONG"
 
-    def validate(
-        self, schema_version: SchemaVersion, by_order: Optional[bool] = True
-    ) -> DataframeSchemaValidationResult:
+    def validate(self, df: DataFrame) -> DataframeSchemaValidationResult:
         """Helper function to compare column names and identify differences.
-
-        Args:
-            by_order: If True, checks column order as well
 
         Returns:
             ValidationResult containing:
@@ -25,8 +26,8 @@ class DataframeSchemaExpectation(Expectation):
                 - Set of extra columns
         """
         exclude_columns = ["_corrupt_record", "_source_file"]
-        source_columns = [c for c in self._df.columns if c not in exclude_columns]
-        expected_columns = schema_version.to_struct_type().fieldNames()
+        source_columns = [c for c in df.columns if c not in exclude_columns]
+        expected_columns = self.schema_version.to_struct_type().fieldNames()
         source_columns_set = set(source_columns)
         expected_columns_set = set(expected_columns)
 
@@ -35,10 +36,10 @@ class DataframeSchemaExpectation(Expectation):
         extra_columns = source_columns_set - expected_columns_set
 
         # If not checking order, only set comparison matters
-        if not by_order:
+        if not self.by_order:
             return DataframeSchemaValidationResult(
                 expectation_id=self.id,
-                df=self._df,
+                df=df,
                 passed=missing_columns == extra_columns == set(),
                 source_columns=source_columns,
                 expected_columns=expected_columns,
@@ -49,7 +50,7 @@ class DataframeSchemaExpectation(Expectation):
         # When checking order, lists must be identical
         return DataframeSchemaValidationResult(
             expectation_id=self.id,
-            df=self._df,
+            df=df,
             passed=source_columns == expected_columns,
             source_columns=source_columns,
             expected_columns=expected_columns,

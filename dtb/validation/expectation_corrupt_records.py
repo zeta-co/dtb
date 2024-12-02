@@ -61,7 +61,7 @@ class CorruptRecordsExpectation(Expectation):
             )
         return valid_records, corrupt_records
 
-    def validate(self, spark: SparkSession, df: DataFrame) -> DataframeValidationResult:
+    def validate(self, df: DataFrame) -> DataframeValidationResult:
         """
         Validates the DataFrame for corrupt records and returns the validation results.
 

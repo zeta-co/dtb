@@ -23,10 +23,10 @@ class Column:
     Attributes:
         name (str): The name of the column.
         data_type (str): The data type of the column. Must be one of:
-            'boolean', 'date', 'datetime', 'decimal', 'double', 'integer', 'long', 'string'.
+            'boolean', 'date', 'timestamp', 'decimal', 'double', 'integer', 'long', 'string'.
         nullable (Optional[bool]): Whether the column can contain null values. Defaults to True.
         description (Optional[str]): Human-readable description of the column.
-        datetime_format (Optional[str]): Format string for date/datetime types (e.g., "yyyy-MM-dd").
+        datetime_format (Optional[str]): Format string for date/timestamp types (e.g., "yyyy-MM-dd").
         min_value (Optional[Any]): Minimum allowed value for numeric types.
         max_value (Optional[Any]): Maximum allowed value for numeric types.
         valid_values (Optional[List[Any]]): List of allowed values for the column.
@@ -85,7 +85,7 @@ class Column:
         - When specifying min_value and max_value for numeric types, the values must
           be numeric and max_value must be greater than min_value.
         - The regex_pattern attribute is only valid for string type columns.
-        - The datetime_format attribute is only valid for date and datetime types.
+        - The datetime_format attribute is only valid for date and timestamp types.
         - For decimal type, both precision and scale must be specified, and scale
           must be between 0 and precision.
     """
@@ -109,7 +109,7 @@ class Column:
         self.type_mapping = {
             "boolean": BooleanType,
             "date": DateType,
-            "datetime": TimestampType,
+            "timestamp": TimestampType,
             "decimal": DecimalType,
             "double": DoubleType,
             "integer": IntegerType,
@@ -138,10 +138,10 @@ class Column:
             ):
                 raise ValueError("Decimal scale must be between 0 and precision")
 
-        # datetime_format should only be present for date/datetime types
+        # datetime_format should only be present for date/timestamp types
         if self.datetime_format is not None and self.data_type not in [
             "date",
-            "datetime",
+            "timestamp",
         ]:
             raise ValueError(
                 f"datetime_format not applicable for type {self.data_type}"

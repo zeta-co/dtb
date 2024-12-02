@@ -108,10 +108,10 @@ class TestCorruptRecordsExpectation:
         assert create_df_args[0][1].fieldNames() == ["_corrupt_record"]
 
     def test_validate_with_corrupt_records(
-        self, spark, mock_df_with_corrupt, expectation
+        self, mock_df_with_corrupt, expectation
     ):
         """Test validation of DataFrame containing corrupt records"""
-        result = expectation.validate(spark, mock_df_with_corrupt)
+        result = expectation.validate(mock_df_with_corrupt)
 
         # Verify correct flag column creation
         mock_df_with_corrupt.withColumn.assert_called_once()
@@ -126,10 +126,10 @@ class TestCorruptRecordsExpectation:
         assert result.message == "Corrupt record"
 
     def test_validate_without_corrupt_records(
-        self, spark, mock_df_without_corrupt, expectation
+        self, mock_df_without_corrupt, expectation
     ):
         """Test validation of DataFrame without corrupt records column"""
-        result = expectation.validate(spark, mock_df_without_corrupt)
+        result = expectation.validate(mock_df_without_corrupt)
 
         # Verify no withColumn operation was performed
         mock_df_without_corrupt.withColumn.assert_not_called()
@@ -151,27 +151,27 @@ class TestCorruptRecordsExpectation:
         """Test value_column property returns correct value"""
         assert expectation.value_column == expected_value
 
-    def test_validate_with_all_valid_records(self, spark, expectation):
+    def test_validate_with_all_valid_records(self, expectation):
         """Test validation when all records are valid"""
         # Create mock DataFrame with no corrupt records (all NULL in _corrupt_record)
         mock_df = Mock(spec=DataFrame)
         mock_df.columns = ["id", "name", "_corrupt_record"]
         mock_df.withColumn.return_value = mock_df
 
-        result = expectation.validate(spark, mock_df)
+        result = expectation.validate(mock_df)
 
         assert isinstance(result, DataframeValidationResult)
         assert result.flag_column == expectation.flag_column
         assert result.value_column == "_corrupt_record"
 
-    def test_validate_with_mixed_records(self, spark, expectation):
+    def test_validate_with_mixed_records(self, expectation):
         """Test validation with mixture of valid and corrupt records"""
         # Create mock DataFrame with mixed valid/corrupt records
         mock_df = Mock(spec=DataFrame)
         mock_df.columns = ["id", "name", "_corrupt_record"]
         mock_df.withColumn.return_value = mock_df
 
-        result = expectation.validate(spark, mock_df)
+        result = expectation.validate(mock_df)
 
         assert isinstance(result, DataframeValidationResult)
         assert result.flag_column == expectation.flag_column

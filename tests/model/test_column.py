@@ -57,7 +57,7 @@ def test_non_string_data_type():
 @pytest.mark.parametrize("data_type,spark_type", [
     ("boolean", BooleanType()),
     ("date", DateType()),
-    ("datetime", TimestampType()),
+    ("timestamp", TimestampType()),
     ("double", DoubleType()),
     ("integer", IntegerType()),
     ("long", LongType()),
@@ -101,7 +101,7 @@ def test_datetime_format_validation():
     """Test datetime format validation."""
     # Valid cases
     Column(name="date", data_type="date", datetime_format="yyyy-MM-dd")
-    Column(name="timestamp", data_type="datetime", datetime_format="yyyy-MM-dd HH:mm:ss")
+    Column(name="timestamp", data_type="timestamp", datetime_format="yyyy-MM-dd HH:mm:ss")
     
     # Invalid case
     with pytest.raises(ValueError, match="datetime_format not applicable for type"):
