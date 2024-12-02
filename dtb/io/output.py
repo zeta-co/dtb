@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 from pyspark.sql import DataFrame, SparkSession
 from ..model.dataset import Dataset
 from ..model.metadata import Metadata
@@ -21,11 +21,8 @@ class Output(Dataset):
         'append': AppendStrategy,
         'overwrite': OverwriteStrategy
     }
-    
-    def __init__(
-        self,
-        metadata: Metadata
-    ):
+
+    def __init__(self, metadata: Dict[str, Any]):
         """Initialise Output instance.
         
         Args:
@@ -34,7 +31,7 @@ class Output(Dataset):
         Raises:
             ValueError: If specified write mode is not supported.
         """
-        self.metadata = Metadata(metadata)
+        super().__init__(metadata)
         
         # Initialise write mode and strategy
         write_mode = self.metadata.mode

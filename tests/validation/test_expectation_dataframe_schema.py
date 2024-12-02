@@ -29,7 +29,7 @@ class TestDataframeSchemaExpectation:
     def mock_schema_version(self):
         """Create a mock SchemaVersion"""
         schema_version = Mock(spec=SchemaVersion)
-        schema_version.struct_type = StructType(
+        schema_version.to_struct_type.return_value = StructType(
             [
                 StructField("id", IntegerType(), True),
                 StructField("name", StringType(), True),
@@ -45,7 +45,7 @@ class TestDataframeSchemaExpectation:
     def test_validate_exact_match(self, spark, expectation, mock_schema_version):
         """Test validation with exact column match"""
         # Create DataFrame with matching schema
-        df = spark.createDataFrame([], mock_schema_version.struct_type)
+        df = spark.createDataFrame([], mock_schema_version.to_struct_type())
         expectation._df = df
 
         result = expectation.validate(mock_schema_version)
@@ -200,7 +200,7 @@ class TestDataframeSchemaExpectation:
         """Test validation against empty expected schema"""
         # Create mock schema version with empty schema
         empty_schema_version = Mock(spec=SchemaVersion)
-        empty_schema_version.struct_type = StructType([])
+        empty_schema_version.to_struct_type.return_value = StructType([])
 
         # Create DataFrame with some columns
         df = spark.createDataFrame(
@@ -239,7 +239,7 @@ class TestDataframeSchemaExpectation:
         self, spark, expectation, mock_schema_version, by_order
     ):
         """Test validation with identical schemas in both order modes"""
-        df = spark.createDataFrame([], mock_schema_version.struct_type)
+        df = spark.createDataFrame([], mock_schema_version.to_struct_type())
         expectation._df = df
 
         result = expectation.validate(mock_schema_version, by_order=by_order)

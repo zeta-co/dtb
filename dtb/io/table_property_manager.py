@@ -1,7 +1,7 @@
 from typing import Any, Dict, List
 from pyspark.sql import SparkSession
 from ..model.metadata import Metadata
-from .table_property import TableProperty, TablePropertyType
+from .table_property import TableProperty
 from .table_property_validator import TablePropertyValidator
 
 
@@ -105,7 +105,7 @@ class TablePropertyManager:
         properties = []
 
         # Get properties from metadata
-        meta_properties = self.metadata._metadata.get("properties", {})
+        meta_properties = self.metadata.table_properties
 
         for key, value in meta_properties.items():
             if self.validator.validate(key, value):
@@ -120,7 +120,7 @@ class TablePropertyManager:
             return
 
         # Get properties from metadata
-        properties = self.metadata._metadata.get("properties", {})
+        properties = self.metadata.table_properties
 
         # Validate properties
         validation_errors = self._validate_properties(properties)

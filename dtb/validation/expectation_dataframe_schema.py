@@ -26,7 +26,7 @@ class DataframeSchemaExpectation(Expectation):
         """
         exclude_columns = ["_corrupt_record", "_source_file"]
         source_columns = [c for c in self._df.columns if c not in exclude_columns]
-        expected_columns = schema_version.struct_type.fieldNames()
+        expected_columns = schema_version.to_struct_type().fieldNames()
         source_columns_set = set(source_columns)
         expected_columns_set = set(expected_columns)
 

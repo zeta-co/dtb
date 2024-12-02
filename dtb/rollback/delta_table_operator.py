@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Dict, Union
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
@@ -13,7 +13,7 @@ class DeltaTableOperator:
 
     def rollback_table(
         self, table: Table, version: DeltaVersion, dry_run: bool = False
-    ) -> Dict[str, Union[bool, str, datetime]]:
+    ) -> Dict[str, Union[bool, str, datetime.datetime]]:
         if not table_is_delta(self.spark, table.full_name):
             return {
                 "success": False,
@@ -27,7 +27,7 @@ class DeltaTableOperator:
             if version.version_or_timestamp is None:
                 action = "truncate"
                 to_version = None
-            elif isinstance(version.version_or_timestamp, datetime):
+            elif isinstance(version.version_or_timestamp, datetime.datetime):
                 if version.version_or_timestamp < table_creation_time:
                     action = "truncate"
                     to_version = None
@@ -43,7 +43,7 @@ class DeltaTableOperator:
                 if action == "truncate":
                     self._truncate_table(delta_table)
                 else:
-                    if isinstance(version.version_or_timestamp, datetime):
+                    if isinstance(version.version_or_timestamp, datetime.datetime):
                         delta_table.restoreToTimestamp(timestamp_str)
                     else:
                         delta_table.restoreToVersion(to_version)
@@ -52,7 +52,7 @@ class DeltaTableOperator:
                 "success": True,
                 "from_version": str(current_version),
                 "to_version": str(to_version) if to_version is not None else None,
-                "rollback_timestamp": datetime.now() if not dry_run else None,
+                "rollback_timestamp": datetime.datetime.now() if not dry_run else None,
                 "action": action,
                 "dry_run": dry_run
             }

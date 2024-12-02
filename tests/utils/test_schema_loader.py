@@ -1,5 +1,5 @@
-import pytest
 from datetime import datetime
+from dtb.model.column import Column
 from dtb.model.schema_registry import SchemaRegistry
 from dtb.utils.date_extractor import DateExtractors
 from dtb.utils.schema_loader import SchemaLoader
@@ -19,7 +19,7 @@ class TestSchemaLoader:
 
         loader = SchemaLoader(registry, extractor)
         schema = loader.get_schema_for_file("data_2024-01-15_daily.csv")
-        assert schema == {"id": "integer", "name": "string"}
+        assert schema == {"id": Column("id", "integer"), "name": Column("name", "string")}
 
     def test_loader_with_yyyymmdd(self):
         registry = SchemaRegistry()
@@ -31,7 +31,7 @@ class TestSchemaLoader:
 
         loader = SchemaLoader(registry, extractor)
         schema = loader.get_schema_for_file("20240115_data.csv")
-        assert schema == {"id": "integer", "name": "string"}
+        assert schema == {"id": Column("id", "integer"), "name": Column("name", "string")}
 
     def test_loader_with_custom_format(self):
         registry = SchemaRegistry()
@@ -47,4 +47,4 @@ class TestSchemaLoader:
 
         loader = SchemaLoader(registry, extractor)
         schema = loader.get_schema_for_file("data_2024-01-15_14-30_daily.csv")
-        assert schema == {"id": "integer", "name": "string"}
+        assert schema == {"id": Column("id", "integer"), "name": Column("name", "string")}

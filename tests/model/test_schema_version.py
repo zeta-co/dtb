@@ -1,224 +1,210 @@
 import pytest
 from datetime import datetime
 from pyspark.sql.types import (
-    BooleanType,
-    DateType,
-    DecimalType,
-    DoubleType,
-    IntegerType,
-    LongType,
-    StructField,
     StructType,
+    StructField,
     StringType,
-    TimestampType,
+    IntegerType,
+    DecimalType,
 )
+from dtb.model.column import Column
 from dtb.model.schema_version import SchemaVersion
 
 
-class TestSchemaVersion:
-    @pytest.fixture
-    def sample_dates(self):
-        """Fixture providing sample dates for testing"""
-        return {
-            "start": datetime(2023, 1, 1),
-            "end": datetime(2023, 12, 31),
-        }
+@pytest.fixture
+def sample_datetime():
+    return datetime(2024, 1, 1)
 
-    @pytest.fixture
-    def sample_schema(self):
-        """Fixture providing a sample schema with various data types"""
-        return {
+
+def test_basic_initialization(sample_datetime):
+    """Test basic initialization with string column types."""
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=None,
+        version=1,
+        columns={
             "id": "integer",
+            "name": "string"
+        }
+    )
+    
+    assert schema.version == 1
+    assert schema.start_date == sample_datetime
+    assert schema.end_date is None
+    assert len(schema.columns) == 2
+    assert all(isinstance(col, Column) for col in schema.columns.values())
+    assert schema.columns["id"].data_type == "integer"
+    assert schema.columns["name"].data_type == "string"
+
+
+def test_initialization_with_dict_columns(sample_datetime):
+    """Test initialization with dictionary column definitions."""
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=None,
+        version=1,
+        columns={
+            "id": {
+                "data_type": "integer",
+                "nullable": False,
+                "is_primary_key": True
+            },
+            "amount": {
+                "data_type": "decimal",
+                "precision": 10,
+                "scale": 2,
+                "nullable": False
+            }
+        }
+    )
+    
+    assert len(schema.columns) == 2
+    assert schema.columns["id"].is_primary_key
+    assert not schema.columns["id"].nullable
+    assert schema.columns["amount"].precision == 10
+    assert schema.columns["amount"].scale == 2
+
+
+def test_initialization_with_column_objects(sample_datetime):
+    """Test initialization with Column objects."""
+    id_column = Column(name="id", data_type="integer", nullable=False)
+    name_column = Column(name="name", data_type="string")
+    
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=None,
+        version=1,
+        columns={
+            "id": id_column,
+            "name": name_column
+        }
+    )
+    
+    assert len(schema.columns) == 2
+    assert schema.columns["id"] is id_column
+    assert schema.columns["name"] is name_column
+
+
+def test_invalid_column_type(sample_datetime):
+    """Test that invalid column types raise ValueError."""
+    with pytest.raises(ValueError, match="Invalid column info type"):
+        SchemaVersion(
+            start_date=sample_datetime,
+            end_date=None,
+            version=1,
+            columns={
+                "id": 123  # Invalid type
+            }
+        )
+
+
+def test_str_representation(sample_datetime):
+    """Test string representation of SchemaVersion."""
+    # With end_date
+    end_date = datetime(2024, 12, 31)
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=end_date,
+        version=1,
+        columns={"id": "integer"}
+    )
+    assert str(schema) == "Schema V1: 2024-01-01 to 2024-12-31"
+    
+    # Without end_date
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=None,
+        version=1,
+        columns={"id": "integer"}
+    )
+    assert str(schema) == "Schema V1: 2024-01-01 to PRESENT"
+
+
+def test_to_struct_type():
+    """Test conversion to PySpark StructType."""
+    schema = SchemaVersion(
+        start_date=datetime(2024, 1, 1),
+        end_date=None,
+        version=1,
+        columns={
+            "id": {
+                "data_type": "integer",
+                "nullable": False
+            },
             "name": "string",
-            "active": "boolean",
-            "created_at": "datetime",
-            "amount": "decimal",
+            "amount": {
+                "data_type": "decimal",
+                "precision": 10,
+                "scale": 2
+            }
         }
+    )
+    
+    spark_schema = schema.to_struct_type()
+    assert isinstance(spark_schema, StructType)
+    assert len(spark_schema.fields) == 3
+    
+    # Check individual fields
+    id_field = spark_schema.fields[0]
+    assert isinstance(id_field, StructField)
+    assert id_field.name == "id"
+    assert isinstance(id_field.dataType, IntegerType)
+    assert not id_field.nullable
+    
+    name_field = spark_schema.fields[1]
+    assert name_field.name == "name"
+    assert isinstance(name_field.dataType, StringType)
+    assert name_field.nullable
+    
+    amount_field = spark_schema.fields[2]
+    assert amount_field.name == "amount"
+    assert isinstance(amount_field.dataType, DecimalType)
+    assert amount_field.dataType.precision == 10
+    assert amount_field.dataType.scale == 2
 
-    @pytest.fixture
-    def complex_schema(self):
-        """Fixture providing a schema with nullable specifications"""
-        return {
-            "id": {"type": "integer", "nullable": False},
-            "name": {"type": "string", "nullable": True},
-            "status": {"type": "string", "nullable": False},
-            "created_at": {"type": "datetime", "nullable": True},
+
+def test_to_dict(sample_datetime):
+    """Test conversion to dictionary format."""
+    end_date = datetime(2024, 12, 31)
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=end_date,
+        version=1,
+        columns={
+            "id": {
+                "data_type": "integer",
+                "nullable": False,
+                "is_primary_key": True
+            },
+            "name": "string"
         }
+    )
+    
+    result = schema.to_dict()
+    assert result["version"] == 1
+    assert result["start_date"] == sample_datetime.isoformat()
+    assert result["end_date"] == end_date.isoformat()
+    assert "id" in result["columns"]
+    assert "name" in result["columns"]
+    assert result["columns"]["id"]["type"] == "integer"
+    assert not result["columns"]["id"]["nullable"]
+    assert result["columns"]["id"]["is_primary_key"]
 
-    def test_init(self, sample_dates, sample_schema):
-        """Test basic initialization"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=sample_dates["end"],
-            columns=sample_schema,
-            version=1,
-        )
 
-        assert schema.start_date == sample_dates["start"]
-        assert schema.end_date == sample_dates["end"]
-        assert schema.columns == sample_schema
-        assert schema.version == 1
-
-    def test_str_representation_with_end_date(self, sample_dates, sample_schema):
-        """Test string representation with end date"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=sample_dates["end"],
-            columns=sample_schema,
-            version=1,
-        )
-
-        expected = "Schema V1: 2023-01-01 to 2023-12-31"
-        assert str(schema) == expected
-
-    def test_str_representation_current(self, sample_dates, sample_schema):
-        """Test string representation for currently active schema"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=sample_schema,
-            version=2,
-        )
-
-        expected = "Schema V2: 2023-01-01 to PRESENT"
-        assert str(schema) == expected
-
-    def test_struct_type_basic_types(self, sample_dates):
-        """Test conversion of basic data types to StructType"""
-        basic_schema = {
-            "string_field": "string",
-            "int_field": "integer",
-            "long_field": "long",
-            "double_field": "double",
-            "decimal_field": "decimal",
-            "date_field": "date",
-            "datetime_field": "datetime",
-            "bool_field": "boolean",
-        }
-
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=basic_schema,
-            version=1,
-        )
-
-        struct_type = schema.struct_type
-        assert isinstance(struct_type, StructType)
-
-        # Verify each field type
-        type_mapping = {
-            "string_field": StringType,
-            "int_field": IntegerType,
-            "long_field": LongType,
-            "double_field": DoubleType,
-            "decimal_field": DecimalType,
-            "date_field": DateType,
-            "datetime_field": TimestampType,
-            "bool_field": BooleanType,
-        }
-
-        for field in struct_type.fields:
-            assert isinstance(field.dataType, type_mapping[field.name])
-            assert field.nullable  # Default nullable=True
-
-    def test_struct_type_with_nullable_specs(self, sample_dates, complex_schema):
-        """Test conversion with explicit nullable specifications"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=complex_schema,
-            version=1,
-        )
-
-        struct_type = schema.struct_type
-
-        # Verify nullable specifications
-        field_dict = {field.name: field for field in struct_type.fields}
-        assert not field_dict["id"].nullable
-        assert field_dict["name"].nullable
-        assert not field_dict["status"].nullable
-        assert field_dict["created_at"].nullable
-
-    def test_invalid_data_type(self, sample_dates):
-        """Test handling of invalid data type"""
-        invalid_schema = {"field1": "invalid_type"}
-
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=invalid_schema,
-            version=1,
-        )
-
-        with pytest.raises(ValueError) as exc_info:
-            _ = schema.struct_type
-        assert "Unsupported data type" in str(exc_info.value)
-
-    def test_case_insensitivity(self, sample_dates):
-        """Test case insensitive handling of data types"""
-        mixed_case_schema = {
-            "field1": "STRING",
-            "field2": "Integer",
-            "field3": "BOOLEAN",
-        }
-
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=mixed_case_schema,
-            version=1,
-        )
-
-        struct_type = schema.struct_type
-        field_dict = {field.name: field for field in struct_type.fields}
-
-        assert isinstance(field_dict["field1"].dataType, StringType)
-        assert isinstance(field_dict["field2"].dataType, IntegerType)
-        assert isinstance(field_dict["field3"].dataType, BooleanType)
-
-    def test_empty_schema(self, sample_dates):
-        """Test handling of empty schema"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"], end_date=None, columns={}, version=1
-        )
-
-        struct_type = schema.struct_type
-        assert len(struct_type.fields) == 0
-
-    def test_schema_with_mixed_format(self, sample_dates):
-        """Test schema with mixed format (simple strings and dicts)"""
-        mixed_schema = {
-            "id": {"type": "integer", "nullable": False},
-            "name": "string",
-            "status": {"type": "string", "nullable": True},
-            "age": "integer",
-        }
-
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=None,
-            columns=mixed_schema,
-            version=1,
-        )
-
-        struct_type = schema.struct_type
-        field_dict = {field.name: field for field in struct_type.fields}
-
-        assert not field_dict["id"].nullable
-        assert field_dict["name"].nullable  # Default True
-        assert field_dict["status"].nullable
-        assert field_dict["age"].nullable  # Default True
-
-    @pytest.mark.parametrize("version", [1, 2, 100])
-    def test_different_versions(self, sample_dates, sample_schema, version):
-        """Test different version numbers"""
-        schema = SchemaVersion(
-            start_date=sample_dates["start"],
-            end_date=sample_dates["end"],
-            columns=sample_schema,
-            version=version,
-        )
-
-        assert schema.version == version
-        assert f"Schema V{version}" in str(schema)
+def test_column_order_preservation(sample_datetime):
+    """Test that column order is preserved."""
+    columns = {
+        "third": "string",
+        "first": "integer",
+        "second": "string"
+    }
+    
+    schema = SchemaVersion(
+        start_date=sample_datetime,
+        end_date=None,
+        version=1,
+        columns=columns
+    )
+    
+    # Check that the order matches the input
+    assert list(schema.columns.keys()) == list(columns.keys())

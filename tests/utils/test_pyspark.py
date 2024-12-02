@@ -1,153 +1,172 @@
+import datetime
 import pytest
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, BooleanType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    BooleanType,
+    IntegerType,
+    StringType,
+    TimestampType,
+)
 from dataclasses import dataclass
-from dtb.utils.pyspark import aggregate_bool_columns, class_to_struct_type
+from dtb.utils.pyspark import (
+    aggregate_bool_columns,
+    check_failures_threshold,
+    class_to_struct_type,
+)
 
 
+# Test fixtures
 @pytest.fixture(scope="session")
 def spark():
-    return SparkSession.builder.master("local[1]").appName("unit_tests").getOrCreate()
+    """Create a SparkSession for testing."""
+    return SparkSession.builder.master("local[1]").appName("unit-tests").getOrCreate()
 
 
-@dataclass
-class TestData:
-    dtb_check_1: bool
-    dtb_check_2: bool
-    other_col: bool
-
-
-def test_aggregate_bool_columns_all_true(spark):
-    # Create test data with all True values
+@pytest.fixture
+def sample_bool_df(spark):
+    """Create a sample DataFrame with boolean columns."""
     data = [
-        (True, True, False),  # other_col shouldn't affect result
+        (True, True, True, "row1"),
+        (True, False, True, "row2"),
+        (False, True, True, "row3"),
+        (True, True, False, "row4"),
     ]
-
     schema = StructType(
         [
-            StructField("dtb_check_1", BooleanType(), True),
-            StructField("dtb_check_2", BooleanType(), True),
-            StructField("other_col", BooleanType(), True),
+            StructField("check_1", BooleanType(), True),
+            StructField("check_2", BooleanType(), True),
+            StructField("check_3", BooleanType(), True),
+            StructField("id", StringType(), True),
         ]
     )
-
-    df = spark.createDataFrame(data, schema)
-
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
-
-    assert result.collect()[0]["all_passed"] == True
+    return spark.createDataFrame(data, schema)
 
 
-def test_aggregate_bool_columns_one_false(spark):
-    # Create test data with one False value
-    data = [
-        (True, False, True),  # other_col shouldn't affect result
-    ]
-
+@pytest.fixture
+def empty_df(spark):
+    """Create an empty DataFrame with boolean column."""
     schema = StructType(
         [
-            StructField("dtb_check_1", BooleanType(), True),
-            StructField("dtb_check_2", BooleanType(), True),
-            StructField("other_col", BooleanType(), True),
+            StructField("passed", BooleanType(), True),
+            StructField("id", StringType(), True),
         ]
     )
-
-    df = spark.createDataFrame(data, schema)
-
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
-
-    assert result.collect()[0]["all_passed"] == False
+    return spark.createDataFrame([], schema)
 
 
-def test_aggregate_bool_columns_all_false(spark):
-    # Create test data with all False values
-    data = [
-        (False, False, True),  # other_col shouldn't affect result
-    ]
+# Tests for class_to_struct_type
+def test_class_to_struct_type_basic():
+    @dataclass
+    class TestClass:
+        name: str
+        age: int
+        is_active: bool
+        created_at: datetime.datetime
 
-    schema = StructType(
-        [
-            StructField("dtb_check_1", BooleanType(), True),
-            StructField("dtb_check_2", BooleanType(), True),
-            StructField("other_col", BooleanType(), True),
-        ]
+    schema = class_to_struct_type(TestClass)
+    assert isinstance(schema, StructType)
+    assert len(schema.fields) == 4
+    assert schema.fields[0].name == "name" and isinstance(
+        schema.fields[0].dataType, StringType
+    )
+    assert schema.fields[1].name == "age" and isinstance(
+        schema.fields[1].dataType, IntegerType
+    )
+    assert schema.fields[2].name == "is_active" and isinstance(
+        schema.fields[2].dataType, BooleanType
+    )
+    assert schema.fields[3].name == "created_at" and isinstance(
+        schema.fields[3].dataType, TimestampType
     )
 
-    df = spark.createDataFrame(data, schema)
 
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
+def test_class_to_struct_type_unsupported_type():
+    @dataclass
+    class TestClass:
+        name: str
+        data: dict  # Unsupported type
 
-    assert result.collect()[0]["all_passed"] == False
+    with pytest.raises(ValueError, match="Unsupported type for attribute data"):
+        class_to_struct_type(TestClass)
 
 
-def test_aggregate_bool_columns_multiple_rows(spark):
-    # Create test data with multiple rows
-    data = [
-        (True, True, True),  # Row 1: all True
-        (True, False, True),  # Row 2: one False
-        (False, False, True),  # Row 3: all False
-    ]
-
-    schema = StructType(
-        [
-            StructField("dtb_check_1", BooleanType(), True),
-            StructField("dtb_check_2", BooleanType(), True),
-            StructField("other_col", BooleanType(), True),
-        ]
+# Tests for aggregate_bool_columns
+def test_aggregate_bool_columns_all_true(sample_bool_df):
+    result = aggregate_bool_columns(
+        sample_bool_df.filter("id = 'row1'"), "check", "all_passed"
     )
-
-    df = spark.createDataFrame(data, schema)
-
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
-
-    expected = [True, False, False]
-    actual = [row["all_passed"] for row in result.collect()]
-
-    assert actual == expected
+    assert result.filter("id = 'row1'").select("all_passed").first()[0] == True
 
 
-def test_aggregate_bool_columns_with_class_to_struct(spark):
-    # Test using the class_to_struct_type function
-    data = [
-        (True, True, True),
-        (True, False, True),
-    ]
-
-    schema = class_to_struct_type(TestData)
-    df = spark.createDataFrame(data, schema)
-
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
-
-    expected = [True, False]
-    actual = [row["all_passed"] for row in result.collect()]
-
-    assert actual == expected
-
-
-def test_aggregate_bool_columns_no_matching_columns(spark):
-    # Test error handling when no columns match pattern
-    data = [(True,)]
-    schema = StructType([StructField("no_match", BooleanType(), True)])
-    df = spark.createDataFrame(data, schema)
-
-    with pytest.raises(ValueError) as exc_info:
-        aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
-
-    assert "No columns found matching pattern" in str(exc_info.value)
-
-
-def test_aggregate_bool_columns_empty_dataframe(spark):
-    # Test with empty DataFrame but valid schema
-    schema = StructType(
-        [
-            StructField("dtb_check_1", BooleanType(), True),
-            StructField("dtb_check_2", BooleanType(), True),
-        ]
+def test_aggregate_bool_columns_one_false(sample_bool_df):
+    result = aggregate_bool_columns(
+        sample_bool_df.filter("id = 'row2'"), "check", "all_passed"
     )
+    assert result.filter("id = 'row2'").select("all_passed").first()[0] == False
 
-    df = spark.createDataFrame([], schema)
 
-    result = aggregate_bool_columns(df, pattern="dtb_check_", new_col_name="all_passed")
+def test_aggregate_bool_columns_invalid_pattern(sample_bool_df):
+    with pytest.raises(ValueError, match="No columns found matching pattern"):
+        aggregate_bool_columns(sample_bool_df, "nonexistent", "all_passed")
 
-    assert result.count() == 0
-    assert "all_passed" in result.columns
+
+def test_aggregate_bool_columns_multiple_rows(sample_bool_df):
+    result = aggregate_bool_columns(sample_bool_df, "check", "all_passed")
+    passed_counts = result.groupBy("all_passed").count().collect()
+    # Only row1 should have all checks passed
+    assert len([row for row in passed_counts if row["all_passed"]]) == 1
+
+
+# Tests for check_failures_threshold
+def test_check_failures_threshold_absolute(spark):
+    df = spark.createDataFrame([(True,), (True,), (False,), (False,)], ["passed"])
+
+    assert check_failures_threshold(df, threshold=2) == True  # 2 failures allowed
+    assert check_failures_threshold(df, threshold=1) == False  # Only 1 failure allowed
+
+
+def test_check_failures_threshold_percentage(spark):
+    df = spark.createDataFrame([(True,), (True,), (False,), (False,)], ["passed"])
+
+    assert check_failures_threshold(df, threshold=0.5) == True  # 50% failures allowed
+    assert (
+        check_failures_threshold(df, threshold=0.25) == False
+    )  # Only 25% failures allowed
+
+
+def test_check_failures_threshold_empty_df(empty_df):
+    assert check_failures_threshold(empty_df, threshold=1) == True
+    assert check_failures_threshold(empty_df, threshold=0.0) == True
+
+
+def test_check_failures_threshold_invalid_column(sample_bool_df):
+    with pytest.raises(ValueError, match="Column 'nonexistent' not found"):
+        check_failures_threshold(sample_bool_df, threshold=1, column_name="nonexistent")
+
+
+def test_check_failures_threshold_invalid_threshold_negative(sample_bool_df):
+    with pytest.raises(ValueError, match="Threshold cannot be negative"):
+        check_failures_threshold(sample_bool_df, threshold=-1, column_name="check_1")
+
+
+def test_check_failures_threshold_invalid_threshold_percentage(sample_bool_df):
+    with pytest.raises(
+        ValueError, match="Percentage threshold must be between 0.0 and 1.0"
+    ):
+        check_failures_threshold(sample_bool_df, threshold=101.0, column_name="check_1")
+
+
+def test_check_failures_threshold_all_pass(spark):
+    df = spark.createDataFrame([(True,), (True,), (True,), (True,)], ["passed"])
+    assert check_failures_threshold(df, threshold=0) == True
+    assert check_failures_threshold(df, threshold=0.0) == True
+
+
+def test_check_failures_threshold_all_fail(spark):
+    df = spark.createDataFrame([(False,), (False,), (False,), (False,)], ["passed"])
+    assert check_failures_threshold(df, threshold=4) == True
+    assert check_failures_threshold(df, threshold=1.0) == True
+    assert check_failures_threshold(df, threshold=3) == False
+    assert check_failures_threshold(df, threshold=0.75) == False

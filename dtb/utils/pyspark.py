@@ -99,7 +99,7 @@ def check_failures_threshold(
     failure_count = df.filter(~F.col(column_name)).count()
 
     if isinstance(threshold, float):
-        max_failures = int((threshold / 100) * total_rows)
+        max_failures = int(threshold * total_rows)
     else:
         max_failures = int(threshold)
 

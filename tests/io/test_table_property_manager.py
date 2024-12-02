@@ -18,11 +18,9 @@ class TestTablePropertyManager:
         metadata.table_schema = "schema"
         metadata.table_name = "table"
         metadata.type = "delta"
-        metadata._metadata = {
-            "properties": {
-                "delta.appendOnly": "true",
-                "delta.autoOptimize.optimizeWrite": "true"
-            }
+        metadata.table_properties = {
+            "delta.appendOnly": "true",
+            "delta.autoOptimize.optimizeWrite": "true"
         }
         return metadata
 
@@ -64,7 +62,7 @@ class TestTablePropertyManager:
 
     def test_sync_properties_invalid(self, property_manager):
         # Set invalid properties
-        property_manager.metadata._metadata["properties"] = {
+        property_manager.metadata.table_properties = {
             "delta.appendOnly": "invalid"
         }
 
