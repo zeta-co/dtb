@@ -112,7 +112,8 @@ class FileInputReader(InputReader):
         options = self.metadata.format_options | format_options
         if options:
             reader = reader.options(**options)
-        reader = reader.schema(schema)
+        if schema:
+            reader = reader.schema(schema)
         return reader.load(path)
 
 

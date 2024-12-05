@@ -63,8 +63,8 @@ def test_validate_exact_match(spark, schema_version):
 
     result = expectation.validate(df)
     assert result.passed is True
-    assert result.missing_columns == set()
-    assert result.extra_columns == set()
+    assert result.missing_columns == []
+    assert result.extra_columns == []
     assert result.source_columns == ["id", "name", "age"]
     assert result.expected_columns == ["id", "name", "age"]
 
@@ -76,8 +76,8 @@ def test_validate_missing_columns(spark, schema_version):
 
     result = expectation.validate(df)
     assert result.passed is False
-    assert result.missing_columns == {"age"}
-    assert result.extra_columns == set()
+    assert result.missing_columns == ["age"]
+    assert result.extra_columns == []
 
 
 def test_validate_extra_columns(spark, schema_version):
@@ -87,8 +87,8 @@ def test_validate_extra_columns(spark, schema_version):
 
     result = expectation.validate(df)
     assert result.passed is False
-    assert result.missing_columns == set()
-    assert result.extra_columns == {"email"}
+    assert result.missing_columns == []
+    assert result.extra_columns == ["email"]
 
 
 def test_validate_wrong_order(spark, schema_version):
@@ -128,8 +128,8 @@ def test_validate_different_columns(spark, schema_version):
 
     result = expectation.validate(df)
     assert result.passed is False
-    assert result.missing_columns == {"name", "age"}
-    assert result.extra_columns == {"email", "phone"}
+    assert set(result.missing_columns) == set(["name", "age"])
+    assert set(result.extra_columns) == set(["email", "phone"])
 
 
 def test_validate_empty_dataframe_schema(spark):
@@ -147,8 +147,8 @@ def test_validate_empty_dataframe_schema(spark):
 
     result = expectation.validate(df)
     assert result.passed is False
-    assert result.missing_columns == set()
-    assert result.extra_columns == {"id", "name"}
+    assert set(result.missing_columns) == set([])
+    assert set(result.extra_columns) == set(["id", "name"])
 
 
 def test_value_column_property():

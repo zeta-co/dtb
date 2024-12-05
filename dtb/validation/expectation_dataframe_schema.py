@@ -43,8 +43,8 @@ class DataframeSchemaExpectation(Expectation):
                 passed=missing_columns == extra_columns == set(),
                 source_columns=source_columns,
                 expected_columns=expected_columns,
-                missing_columns=missing_columns,
-                extra_columns=extra_columns,
+                missing_columns=list(missing_columns),
+                extra_columns=list(extra_columns),
             )
 
         # When checking order, lists must be identical
@@ -54,6 +54,6 @@ class DataframeSchemaExpectation(Expectation):
             passed=source_columns == expected_columns,
             source_columns=source_columns,
             expected_columns=expected_columns,
-            missing_columns=missing_columns,
-            extra_columns=extra_columns,
+            missing_columns=list(missing_columns),
+            extra_columns=list(extra_columns),
         )

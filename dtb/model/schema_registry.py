@@ -132,13 +132,20 @@ class SchemaRegistry:
                     f"{next_version.version}"
                 )
 
-    def get_schema_for_date(self, date: datetime.datetime) -> Optional[Dict[str, str]]:
-        """Get schema that was active at the given date."""
+    def get_schema_version_for_date(self, date: datetime.datetime) -> Optional[SchemaVersion]:
+        """Get schema version that was active at the given date."""
         for version in self._versions:
             if version.start_date <= date and (
                 version.end_date is None or date <= version.end_date
             ):
-                return version.columns
+                return version
+        return None
+
+    def get_schema_for_date(self, date: datetime.datetime) -> Optional[Dict[str, str]]:
+        """Get schema that was active at the given date."""
+        schema_version = self.get_schema_version_for_date(date)
+        if schema_version:
+            return schema_version.columns
         return None
 
     def print_timeline(self) -> None:

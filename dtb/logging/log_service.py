@@ -13,10 +13,8 @@ class LogService:
     performance.
 
     Attributes:
-        spark: Active SparkSession
         writers: List of configured log writers
         buffer: Buffer of log entries waiting to be written
-        buffer_size: Maximum number of entries to buffer before automatic flush
     """
 
     def __init__(self):

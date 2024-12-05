@@ -183,8 +183,8 @@ class Metadata:
         return self._metadata.get("format_options", {})
 
     @property
-    def schemas(self) -> Dict[str, Any]:
-        return self._metadata["schemas"]
+    def schemas(self) -> List[Dict[str, Any]]:
+        return self._metadata.get("schemas", [])
 
     def to_dict(self) -> Dict[str, Any]:
         return self._metadata
