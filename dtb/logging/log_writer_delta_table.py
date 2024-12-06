@@ -29,8 +29,8 @@ class DeltaTableLogWriter(LogWriter):
         self._spark = spark
         self._config = config
         self._schema = schema
-        self._table_manager = DeltaTableManager(spark)
-        self._table_manager.create_if_not_exists(self._schema, self._config)
+        self._table_manager = DeltaTableManager
+        self._table_manager.create_if_not_exists(spark, schema, config)
 
     def write(self, log_entries: List[LogEntry]) -> None:
         """
