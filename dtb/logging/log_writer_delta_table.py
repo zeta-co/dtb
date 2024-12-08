@@ -51,7 +51,7 @@ class DeltaTableLogWriter(LogWriter):
 
         try:
             if log_entries[0]._log_entry_dict:
-                dicts = [e.output_df() for e in log_entries]
+                dicts = [e.output_dict() for e in log_entries]
                 df = self._spark.createDataFrame(dicts, self._schema)
                 df.write.format("delta").mode("append").saveAsTable(self._config.full_table_name)
                 return None

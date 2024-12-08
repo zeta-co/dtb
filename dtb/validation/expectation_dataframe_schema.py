@@ -1,5 +1,6 @@
 from typing import Optional
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 from .expectation import Expectation
 from .validation_result_dataframe_schema import DataframeSchemaValidationResult
 from ..model.schema_version import SchemaVersion
@@ -39,7 +40,10 @@ class DataframeSchemaExpectation(Expectation):
         if not self.by_order:
             return DataframeSchemaValidationResult(
                 expectation_id=self.id,
-                df=df,
+                df=df.withColumn(
+                    self.flag_column,
+                    F.lit(missing_columns == extra_columns == set()),
+                ),
                 passed=missing_columns == extra_columns == set(),
                 source_columns=source_columns,
                 expected_columns=expected_columns,
@@ -50,7 +54,10 @@ class DataframeSchemaExpectation(Expectation):
         # When checking order, lists must be identical
         return DataframeSchemaValidationResult(
             expectation_id=self.id,
-            df=df,
+            df=df.withColumn(
+                    self.flag_column,
+                    F.lit(source_columns == expected_columns),
+                ),
             passed=source_columns == expected_columns,
             source_columns=source_columns,
             expected_columns=expected_columns,

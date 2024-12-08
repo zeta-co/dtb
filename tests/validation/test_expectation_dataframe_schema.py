@@ -169,7 +169,8 @@ def test_validation_result_contains_dataframe(spark, schema_version):
     expectation = DataframeSchemaExpectation(schema_version)
 
     result = expectation.validate(df)
-    assert result.df is df
+    # assert result.df is df
+    assert "_dtb_check_" in result.df.columns[-1]
 
 
 def test_validation_result_contains_expectation_id(spark, schema_version):

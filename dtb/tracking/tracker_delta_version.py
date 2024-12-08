@@ -23,7 +23,7 @@ class DeltaVersionTracker(Tracker):
         spark: SparkSession | None = None,
         initial_state: Dict[str, Any] | None = None,
     ) -> None:
-        """Initialise the Delta version tracker.
+        """Initialize the Delta version tracker.
         
         Args:
             spark: SparkSession instance used for Delta operations
