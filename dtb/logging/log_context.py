@@ -12,8 +12,8 @@ class LogContext:
         job_id: str,
         job_name: str,
         run_id: str,
-        table_name: str,
-        table_path: str,
+        dataset_name: str,
+        dataset_path: str,
         *,  # Force keyword arguments for remaining parameters
         metadata: Dict[str, Any] = None,
         **kwargs: Any
@@ -25,8 +25,8 @@ class LogContext:
         self._data["job_id"] = job_id
         self._data["job_name"] = job_name
         self._data["run_id"] = run_id
-        self._data["table_name"] = table_name
-        self._data["table_path"] = table_path
+        self._data["dataset_name"] = dataset_name
+        self._data["dataset_path"] = dataset_path
 
         # Add any additional metadata
         if metadata:
@@ -36,7 +36,7 @@ class LogContext:
         self._data.update(kwargs)
 
         # Track core field names for type hints and validation
-        self._core_fields = {"job_id", "job_name", "run_id", "table_name", "table_path"}
+        self._core_fields = {"job_id", "job_name", "run_id", "dataset_name", "dataset_path"}
 
     @property
     def job_id(self) -> str:
@@ -54,14 +54,14 @@ class LogContext:
         return self._data["run_id"]
     
     @property
-    def table_name(self) -> str:
-        """Get table_name with type hint"""
-        return self._data["table_name"]
+    def dataset_name(self) -> str:
+        """Get dataset_name with type hint"""
+        return self._data["dataset_name"]
     
     @property
-    def table_path(self) -> str:
-        """Get table_path with type hint"""
-        return self._data["table_path"]
+    def dataset_path(self) -> str:
+        """Get dataset_path with type hint"""
+        return self._data["dataset_path"]
 
     def to_dict(
         self,

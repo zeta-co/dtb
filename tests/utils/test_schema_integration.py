@@ -1,7 +1,6 @@
 from datetime import datetime
 from dtb.model.column import Column
 from dtb.model.schema_registry import SchemaRegistry
-from dtb.utils.date_extractor import DateExtractors
 from dtb.utils.schema_loader import SchemaLoader
 
 
@@ -19,7 +18,7 @@ def test_schema_integration():
     )
 
     # Test with YYYY-MM-DD format dataset
-    yyyy_mm_dd_loader = SchemaLoader(registry, DateExtractors.yyyy_mm_dd())
+    yyyy_mm_dd_loader = SchemaLoader(registry, "yyyy-mm-dd")
     schema1 = yyyy_mm_dd_loader.get_schema_for_file("data_2024-01-15_daily.csv")
     assert schema1 == {"id": Column("id", "integer")}
 
@@ -27,7 +26,7 @@ def test_schema_integration():
     assert schema2 == {"id": Column("id", "integer"), "name": Column("name", "string")}
 
     # Test with YYYYMMDD format dataset (different dataset, same registry)
-    yyyymmdd_loader = SchemaLoader(registry, DateExtractors.yyyymmdd())
+    yyyymmdd_loader = SchemaLoader(registry, "yyyymmdd")
     schema3 = yyyymmdd_loader.get_schema_for_file("20240115_data.csv")
     assert schema3 == {"id": Column("id", "integer")}
 

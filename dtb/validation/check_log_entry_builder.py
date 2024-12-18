@@ -9,6 +9,7 @@ from .validation_result_dataframe_schema import DataframeSchemaValidationResult
 from .validation_result_dataframe import DataframeValidationResult
 from ..logging.log_entry import LogEntry
 from ..logging.log_context import LogContext
+from ..utils.pyspark import get_input_paths_from_df
 
 
 class CheckLogEntryBuilder(ABC):
@@ -64,6 +65,7 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
                 "source_columns": result.source_columns,
                 "missing_columns": result.missing_columns,
                 "extra_columns": result.extra_columns,
+                "files": get_input_paths_from_df(result.df),
             }
         )
         return [
@@ -72,12 +74,13 @@ class DataframeSchemaCheckLogEntryBuilder(CheckLogEntryBuilder):
                     "job_id": log_context.job_id,
                     "job_name": log_context.job_name,
                     "run_id": log_context.run_id,
+                    "check_type": result.expectation_type,
                     "check_id": result.expectation_id,
                     "check_description": check_description,
                     "date": datetime.datetime.today(),
                     "datetime": datetime.datetime.now(),
-                    "table_name": log_context.table_name,
-                    "table_path": log_context.table_path,
+                    "dataset_name": log_context.dataset_name,
+                    "dataset_path": log_context.dataset_path,
                     "total_row_count": total_row_count,
                     "invalid_row_count": 0 if result.passed else total_row_count,
                     "passed": result.passed,
@@ -139,25 +142,28 @@ class DataframeRecordCheckLogEntryBuilder(CheckLogEntryBuilder):
                     "invalid_rows"
                 ),
             ).collect()
+        context_dict = log_context.to_dict()
+        context_dict.update({"files": get_input_paths_from_df(result.df)})
         return [
             CheckLogEntry(
                 log_entry_dict={
                     "job_id": log_context.job_id,
                     "job_name": log_context.job_name,
                     "run_id": log_context.run_id,
+                    "check_type": result.expectation_type,
                     "check_id": result.expectation_id,
                     "check_description": check_description,
                     "datetime": datetime.datetime.now(),
-                    "table_name": log_context.table_name,
-                    "table_path": (
+                    "dataset_name": log_context.dataset_name,
+                    "dataset_path": (
                         row["_source_file"]
                         if log_context.get("group_by_source_file")
-                        else log_context.table_path
+                        else log_context.dataset_path
                     ),
                     "total_row_count": row["total_rows"],
                     "invalid_row_count": row["invalid_rows"],
                     "passed": True if row["invalid_rows"] == 0 else False,
-                    "extra_info": json.dumps(log_context.to_dict()),
+                    "extra_info": json.dumps(context_dict),
                 }
             )
             for row in summary

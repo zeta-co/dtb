@@ -94,6 +94,7 @@ class CorruptRecordsExpectation(Expectation):
             )
             return DataframeValidationResult(
                 expectation_id=self.id,
+                expectation_type=self.type,
                 df=df,
                 flag_column=self.flag_column,
                 value_column="_corrupt_record",
@@ -102,6 +103,7 @@ class CorruptRecordsExpectation(Expectation):
         else:
             return DataframeValidationResult(
                 expectation_id=self.id,
+                expectation_type=self.type,
                 df=df,
                 flag_column=self.flag_column,
             )

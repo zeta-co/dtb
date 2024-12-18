@@ -19,7 +19,7 @@ class DeltaTableLogWriter(LogWriter):
         self, spark: SparkSession, config: DeltaTableConfig, schema: StructType
     ):
         """
-        Initialize the log writer with table configuration.
+        Initialise the log writer with table configuration.
 
         Args:
             spark: Active SparkSession

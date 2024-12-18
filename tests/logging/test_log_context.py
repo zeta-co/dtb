@@ -12,8 +12,8 @@ class TestLogContext:
             job_id="test-job",
             job_name="Test Job",
             run_id="test-run",
-            table_name="test_table",
-            table_path="/path/to/table",
+            dataset_name="test_table",
+            dataset_path="/path/to/table",
         )
 
     def test_init_required_fields(self):
@@ -22,15 +22,15 @@ class TestLogContext:
             job_id="test-job",
             job_name="Test Job",
             run_id="test-run",
-            table_name="test_table",
-            table_path="/path/to/table",
+            dataset_name="test_table",
+            dataset_path="/path/to/table",
         )
 
         assert context.job_id == "test-job"
         assert context.job_name == "Test Job"
         assert context.run_id == "test-run"
-        assert context.table_name == "test_table"
-        assert context.table_path == "/path/to/table"
+        assert context.dataset_name == "test_table"
+        assert context.dataset_path == "/path/to/table"
 
     def test_init_with_metadata(self):
         """Test initialization with additional metadata"""
@@ -39,8 +39,8 @@ class TestLogContext:
             job_id="test-job",
             job_name="Test Job",
             run_id="test-run",
-            table_name="test_table",
-            table_path="/path/to/table",
+            dataset_name="test_table",
+            dataset_path="/path/to/table",
             metadata=metadata,
         )
 
@@ -54,8 +54,8 @@ class TestLogContext:
             job_id="test-job",
             job_name="Test Job",
             run_id="test-run",
-            table_name="test_table",
-            table_path="/path/to/table",
+            dataset_name="test_table",
+            dataset_path="/path/to/table",
             custom_field="custom",
         )
 
@@ -67,8 +67,8 @@ class TestLogContext:
         assert base_context.job_id == "test-job"
         assert base_context.job_name == "Test Job"
         assert base_context.run_id == "test-run"
-        assert base_context.table_name == "test_table"
-        assert base_context.table_path == "/path/to/table"
+        assert base_context.dataset_name == "test_table"
+        assert base_context.dataset_path == "/path/to/table"
 
     def test_to_dict_all_fields(self, base_context):
         """Test converting to dictionary with all fields"""
@@ -77,8 +77,8 @@ class TestLogContext:
         assert result["job_id"] == "test-job"
         assert result["job_name"] == "Test Job"
         assert result["run_id"] == "test-run"
-        assert result["table_name"] == "test_table"
-        assert result["table_path"] == "/path/to/table"
+        assert result["dataset_name"] == "test_table"
+        assert result["dataset_path"] == "/path/to/table"
 
     def test_to_dict_include_fields(self, base_context):
         """Test converting to dictionary with included fields"""
@@ -95,8 +95,8 @@ class TestLogContext:
         assert "job_id" not in result
         assert "run_id" not in result
         assert "job_name" in result
-        assert "table_name" in result
-        assert "table_path" in result
+        assert "dataset_name" in result
+        assert "dataset_path" in result
 
     def test_dictionary_operations(self, base_context):
         """Test dictionary-like operations"""
@@ -129,8 +129,8 @@ class TestLogContext:
         assert "job_id" in fields
         assert "job_name" in fields
         assert "run_id" in fields
-        assert "table_name" in fields
-        assert "table_path" in fields
+        assert "dataset_name" in fields
+        assert "dataset_path" in fields
 
     def test_error_cases(self, base_context):
         """Test error cases"""

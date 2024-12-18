@@ -40,6 +40,7 @@ class DataframeSchemaExpectation(Expectation):
         if not self.by_order:
             return DataframeSchemaValidationResult(
                 expectation_id=self.id,
+                expectation_type=self.type,
                 df=df.withColumn(
                     self.flag_column,
                     F.lit(missing_columns == extra_columns == set()),
@@ -54,6 +55,7 @@ class DataframeSchemaExpectation(Expectation):
         # When checking order, lists must be identical
         return DataframeSchemaValidationResult(
             expectation_id=self.id,
+            expectation_type=self.type,
             df=df.withColumn(
                     self.flag_column,
                     F.lit(source_columns == expected_columns),

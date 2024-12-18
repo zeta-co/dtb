@@ -6,6 +6,7 @@ from pyspark.sql import DataFrame
 @dataclass
 class ValidationResult:
     expectation_id: str
+    expectation_type: str
     df: DataFrame
 
     def __bool__(self):

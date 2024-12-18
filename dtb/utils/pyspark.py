@@ -59,7 +59,7 @@ def aggregate_bool_columns(df: DataFrame, pattern: str, new_col_name: str) -> Da
 
 def check_failures_threshold(
     df: DataFrame, threshold: Union[int, float], column_name: str = "passed"
-) -> bool:
+) -> Union[bool, int]:
     """
     Check if the number of failures (False values) in a boolean column exceeds a threshold.
 
@@ -76,7 +76,8 @@ def check_failures_threshold(
     Returns:
     bool
         True if number of failures is within threshold, False otherwise
-
+    int
+        Number of rows with at least one failed check
     Raises:
     ValueError:
         If column_name not found in DataFrame
@@ -94,7 +95,7 @@ def check_failures_threshold(
 
     total_rows = df.count()
     if total_rows == 0:
-        return True
+        return (True, 0)
 
     failure_count = df.filter(~F.col(column_name)).count()
 
@@ -103,4 +104,43 @@ def check_failures_threshold(
     else:
         max_failures = int(threshold)
 
-    return failure_count <= max_failures
+    return (failure_count <= max_failures, failure_count)
+
+
+def get_input_paths_from_df(df):
+    """
+    Extract the input file paths from a DataFrame using input_file_name() function.
+
+    Args:
+        df: pyspark.sql.DataFrame - The input DataFrame
+
+    Returns:
+        list: List of unique file paths that were used to create the DataFrame
+
+    Note:
+        This function works with DataFrames created from file sources (csv, parquet, etc.)
+        It may return an empty list if the DataFrame wasn't created from files or if
+        file information is not available.
+    """
+    try:
+        # Add input_file_name as a column
+        df_with_files = df.withColumn("_file_path", F.input_file_name())
+
+        # Get distinct file paths
+        file_paths = [
+            row._file_path
+            for row in df_with_files.select("_file_path").distinct().collect()
+        ]
+
+        # Clean up paths (remove file:// prefix if present)
+        cleaned_paths = []
+        for path in file_paths:
+            if path.startswith("file://"):
+                path = path[7:]
+            cleaned_paths.append(path)
+
+        return sorted(cleaned_paths)
+
+    except Exception as e:
+        # If we can't get file information, return empty list
+        return []

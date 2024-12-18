@@ -1,5 +1,9 @@
+import csv
 import datetime
+import os
 import pytest
+import tempfile
+from typing import NamedTuple
 from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     StructType,
@@ -14,6 +18,7 @@ from dtb.utils.pyspark import (
     aggregate_bool_columns,
     check_failures_threshold,
     class_to_struct_type,
+    get_input_paths_from_df,
 )
 
 
@@ -54,6 +59,33 @@ def empty_df(spark):
         ]
     )
     return spark.createDataFrame([], schema)
+
+
+@pytest.fixture(scope="session")
+def test_files():
+    """Create temporary CSV files for testing"""
+    TestFile = NamedTuple("TestFile", [("path", str), ("data", list[dict])])
+    temp_dir = tempfile.mkdtemp()
+
+    # Create multiple test files
+    files = []
+    for i in range(3):
+        data = [{"id": j, "value": f"test_{i}_{j}"} for j in range(2)]
+
+        file_path = os.path.join(temp_dir, f"test_{i}.csv")
+        with open(file_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "value"])
+            writer.writeheader()
+            writer.writerows(data)
+
+        files.append(TestFile(file_path, data))
+
+    yield files
+
+    # Cleanup temporary files
+    for file in files:
+        os.remove(file.path)
+    os.rmdir(temp_dir)
 
 
 # Tests for class_to_struct_type
@@ -123,22 +155,29 @@ def test_aggregate_bool_columns_multiple_rows(sample_bool_df):
 def test_check_failures_threshold_absolute(spark):
     df = spark.createDataFrame([(True,), (True,), (False,), (False,)], ["passed"])
 
-    assert check_failures_threshold(df, threshold=2) == True  # 2 failures allowed
-    assert check_failures_threshold(df, threshold=1) == False  # Only 1 failure allowed
+    assert check_failures_threshold(df, threshold=2) == (True, 2)  # 2 failures allowed
+    assert check_failures_threshold(df, threshold=1) == (
+        False,
+        2,
+    )  # Only 1 failure allowed
 
 
 def test_check_failures_threshold_percentage(spark):
     df = spark.createDataFrame([(True,), (True,), (False,), (False,)], ["passed"])
 
-    assert check_failures_threshold(df, threshold=0.5) == True  # 50% failures allowed
-    assert (
-        check_failures_threshold(df, threshold=0.25) == False
+    assert check_failures_threshold(df, threshold=0.5) == (
+        True,
+        2,
+    )  # 50% failures allowed
+    assert check_failures_threshold(df, threshold=0.25) == (
+        False,
+        2,
     )  # Only 25% failures allowed
 
 
 def test_check_failures_threshold_empty_df(empty_df):
-    assert check_failures_threshold(empty_df, threshold=1) == True
-    assert check_failures_threshold(empty_df, threshold=0.0) == True
+    assert check_failures_threshold(empty_df, threshold=1) == (True, 0)
+    assert check_failures_threshold(empty_df, threshold=0.0) == (True, 0)
 
 
 def test_check_failures_threshold_invalid_column(sample_bool_df):
@@ -160,13 +199,61 @@ def test_check_failures_threshold_invalid_threshold_percentage(sample_bool_df):
 
 def test_check_failures_threshold_all_pass(spark):
     df = spark.createDataFrame([(True,), (True,), (True,), (True,)], ["passed"])
-    assert check_failures_threshold(df, threshold=0) == True
-    assert check_failures_threshold(df, threshold=0.0) == True
+    assert check_failures_threshold(df, threshold=0) == (True, 0)
+    assert check_failures_threshold(df, threshold=0.0) == (True, 0)
 
 
 def test_check_failures_threshold_all_fail(spark):
     df = spark.createDataFrame([(False,), (False,), (False,), (False,)], ["passed"])
-    assert check_failures_threshold(df, threshold=4) == True
-    assert check_failures_threshold(df, threshold=1.0) == True
-    assert check_failures_threshold(df, threshold=3) == False
-    assert check_failures_threshold(df, threshold=0.75) == False
+    assert check_failures_threshold(df, threshold=4) == (True, 4)
+    assert check_failures_threshold(df, threshold=1.0) == (True, 4)
+    assert check_failures_threshold(df, threshold=3) == (False, 4)
+    assert check_failures_threshold(df, threshold=0.75) == (False, 4)
+
+
+def test_empty_df_returns_empty_list(spark):
+    """Test that DataFrame not from files returns empty list"""
+    df = spark.createDataFrame([], schema="id INT, value STRING")
+    paths = get_input_paths_from_df(df)
+    assert paths == []
+
+
+def test_single_file_df(spark, test_files):
+    """Test with DataFrame from single file"""
+    df = spark.read.csv(test_files[0].path, header=True)
+    paths = get_input_paths_from_df(df)
+    assert len(paths) == 1
+    assert paths[0].endswith("test_0.csv")
+
+
+def test_multiple_files_df(spark, test_files):
+    """Test with DataFrame from multiple files"""
+    # Read all test files
+    file_paths = [f.path for f in test_files]
+    df = spark.read.csv(file_paths, header=True)
+    paths = get_input_paths_from_df(df)
+
+    assert len(paths) == 3
+    assert all(p.endswith(f"test_{i}.csv") for i, p in enumerate(paths))
+
+
+def test_duplicate_files_returns_unique_paths(spark, test_files):
+    """Test that duplicate files are handled correctly"""
+    # Read same file multiple times
+    file_paths = [test_files[0].path] * 3
+    df = spark.read.csv(file_paths, header=True)
+    paths = get_input_paths_from_df(df)
+
+    assert len(paths) == 1
+    assert paths[0].endswith("test_0.csv")
+
+
+def test_filtered_df_maintains_paths(spark, test_files):
+    """Test that filtering DataFrame maintains original file paths"""
+    file_paths = [f.path for f in test_files]
+    df = spark.read.csv(file_paths, header=True)
+    filtered_df = df.filter("id = 0")
+
+    paths = get_input_paths_from_df(filtered_df)
+    assert len(paths) == 3  # Should still show all source files
+    assert all(p.endswith(f"test_{i}.csv") for i, p in enumerate(paths))

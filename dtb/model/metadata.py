@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from dataclasses import dataclass
 
 
@@ -208,3 +208,7 @@ class Metadata:
     @property
     def table_properties(self) -> Dict[str, Any]:
         return self._metadata.get("table_properties", {})
+    
+    @property
+    def threshold(self) -> Union[int, float]:
+        return self._metadata.get("threshold", 0.0)

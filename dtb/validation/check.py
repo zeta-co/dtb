@@ -72,7 +72,7 @@ class Check:
     """
 
     def __init__(self, expectation: Expectation, description: str):
-        """Initialize a new Check instance.
+        """Initialise a new Check instance.
 
         Parameters
         ----------
