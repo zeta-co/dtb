@@ -1,9 +1,10 @@
 import concurrent.futures
 import datetime
 import logging
+import sys
 import traceback
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from ..common.processing_result import ProcessingResult
@@ -29,20 +30,22 @@ class BatchParameters:
 
 
 def single_batch(
-    func: Callable,
-    params: BatchParameters,
+    batch_params: Tuple[
+        Callable,
+        BatchParameters,
+    ]
 ):
     try:
-        input: Input = func.datasets["input"]
-        output: Output = func.datasets["output"]
-        batch_dt = DateExtractor.extract_from(filter, params.datetime_pattern)
+        input: Input = batch_params[0].datasets["input"]
+        output: Output = batch_params[0].datasets["output"]
+        batch_dt = DateExtractor.extract_from(filter, batch_params[1].datetime_pattern)
         schema_registry = SchemaRegistry()
         schema_registry.load_from_list(input.metadata.schemas)
         schema_version = schema_registry.get_schema_version_for_date(batch_dt)
         df = input.read(
-            spark=params.spark,
+            spark=batch_params[1].spark,
             schema=None,
-            filter=[params.filter],
+            filter=[batch_params[1].filter],
             format_options={
                 "enforceSchema": False,
                 "mode": "PERMISSIVE",
@@ -63,7 +66,7 @@ def single_batch(
         result_df, check_log_entries = CheckProcessor().process_checks(df, checks)
 
         # Log check summaries to Delta table
-        check_logger = CheckLogger(params.spark)
+        check_logger = CheckLogger(batch_params[1].spark)
         check_logger.log_entries(check_log_entries)
 
         # Log records with failing checks
@@ -87,7 +90,7 @@ def single_batch(
 
         return ProcessingResult(
             dataset=input.metadata.path,
-            filter=params.filter,
+            filter=batch_params[1].filter,
             datetime=datetime.datetime.now(),
             success=success,
             total_count=result_df.count(),
@@ -100,7 +103,7 @@ def single_batch(
     except Exception as e:
         return ProcessingResult(
             dataset=input.metadata.path,
-            filter=params.filter,
+            filter=batch_params[1].filter,
             datetime=datetime.datetime.now(),
             success=False,
             error_message=str(e),
@@ -109,26 +112,32 @@ def single_batch(
 
 
 def process_batches(
-    self, func: Callable, filter_strings: List[str], max_workers: int = 5
+    func: Callable,
+    filter_strings: List[str],
+    spark: SparkSession,
+    datetime_pattern: str,
+    log_context: LogContext,
+    max_workers: int = 5,
 ) -> Dict[str, Any]:
     all_results = []
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_filter = {
-            executor.submit(self.func, filter_string): filter_string
-            for filter_string in filter_strings
-        }
+        for filter in filter_strings:
+            params = BatchParameters(spark, filter, datetime_pattern, log_context)
+            batch_params = (func, params)
+            future_to_filter = { executor.submit(single_batch, batch_params): batch_params }
 
         for future in concurrent.futures.as_completed(future_to_filter):
             result = future.result()
             all_results.append(result)
-            logger.log(result)
+            logger.info(result)
 
     result_summary = ProcessingResultSummary()
     summary_dict = result_summary.to_dict(all_results)
     summary_str = result_summary.convert_to_str(all_results)
-    logger.log(summary_str)
+    logger.info(summary_str)
     if summary_dict["failed_batches"] > 0:
         raise ValueError(f"One or more batches failed, please refer to logs.")
     return summary_dict

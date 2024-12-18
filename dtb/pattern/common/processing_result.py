@@ -1,5 +1,5 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Union
 from ...validation.check_log_entry import CheckLogEntry
 
@@ -15,7 +15,7 @@ class ProcessingResult:
     total_count: int = 0
     failed_count: int = 0
     threshold: Union[int, float] = 0.0
-    check_log_entries: List[CheckLogEntry] = None
+    check_log_entries: List[CheckLogEntry] = field(default_factory=list)
     error_message: Optional[str] = None
     error_traceback: Optional[str] = None
 
