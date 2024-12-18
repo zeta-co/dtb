@@ -21,7 +21,7 @@ def test_processing_result_basic_initialization():
     assert result.total_count == 0
     assert result.failed_count == 0
     assert result.threshold == 0.0
-    assert result.check_log_entries is None
+    assert result.check_log_entries == []
     assert result.error_message is None
     assert result.error_traceback is None
 
