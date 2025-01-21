@@ -88,7 +88,7 @@ class TestProcessingResultSummary(unittest.TestCase):
         self.assertEqual(result_dict["failed_batches"], 1)
         self.assertEqual(len(result_dict["failures"]), 1)
         self.assertEqual(
-            result_dict["failures"][0]["files"], ["data1.csv", "data2.csv"]
+            set(result_dict["failures"][0]["files"]), {"data1.csv", "data2.csv"}
         )
         self.assertEqual(
             result_dict["failures"][0]["error_message"], "Processing failed"

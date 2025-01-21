@@ -1,9 +1,9 @@
 from typing import Optional
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
-from .expectation import Expectation
-from .validation_result_dataframe_schema import DataframeSchemaValidationResult
-from ..model.schema_version import SchemaVersion
+from ..expectation import Expectation
+from ..validation_result_dataframe_schema import DataframeSchemaValidationResult
+from ...model.schema_version import SchemaVersion
 
 
 class DataframeSchemaExpectation(Expectation):

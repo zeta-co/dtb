@@ -1,8 +1,8 @@
 from typing import Optional
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
-from .expectation import Expectation
-from .validation_result_dataframe import DataframeValidationResult
+from .base import Expectation
+from ..validation_result_dataframe import DataframeValidationResult
 
 
 class ColumnTypeExpectation(Expectation):

@@ -16,7 +16,7 @@ from ...model.schema_registry import SchemaRegistry
 from ...validation.check import Check
 from ...validation.check_logger import CheckLogger
 from ...validation.check_processor import CheckProcessor
-from ...validation.expectation_dataframe_schema import DataframeSchemaExpectation
+from ...validation.expectations.dataframe_schema import DataframeSchemaExpectation
 from ...validation.threshold_evaluator import ThresholdEvaluator
 from ...utils.date_extractor import DateExtractor
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from dtb.model.schema_version import SchemaVersion
-from dtb.validation.expectation_dataframe_schema import DataframeSchemaExpectation
+from dtb.validation.expectations.dataframe_schema import DataframeSchemaExpectation
 
 
 @pytest.fixture(scope="session")

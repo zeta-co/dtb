@@ -3,9 +3,8 @@ from unittest.mock import Mock, patch
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 import pyspark.sql.functions as F
-
 from dtb.validation.expectation import Expectation
-from dtb.validation.expectation_corrupt_records import CorruptRecordsExpectation
+from dtb.validation.expectations.corrupt_records import CorruptRecordsExpectation
 from dtb.validation.validation_result_dataframe import DataframeValidationResult
 
 

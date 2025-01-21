@@ -2,8 +2,8 @@ from typing import Tuple
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
-from .expectation import Expectation
-from .validation_result_dataframe import DataframeValidationResult
+from ..expectation import Expectation
+from ..validation_result_dataframe import DataframeValidationResult
 
 
 class CorruptRecordsExpectation(Expectation):

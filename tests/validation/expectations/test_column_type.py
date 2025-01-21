@@ -1,8 +1,7 @@
 import pytest
 from pyspark.sql import SparkSession
 from typing import Any, List
-
-from dtb.validation.expectation_column_type import ColumnTypeExpectation
+from dtb.validation.expectations.column_type import ColumnTypeExpectation
 from dtb.validation.validation_result_dataframe import DataframeValidationResult
 
 
