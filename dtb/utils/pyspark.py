@@ -124,12 +124,12 @@ def get_input_paths_from_df(df):
     """
     try:
         # Add input_file_name as a column
-        df_with_files = df.withColumn("_file_path", F.input_file_name())
+        df_with_files = df.withColumn("_source_file", F.input_file_name())
 
         # Get distinct file paths
         file_paths = [
-            row._file_path
-            for row in df_with_files.select("_file_path").distinct().collect()
+            row._source_file
+            for row in df_with_files.select("_source_file").distinct().collect()
         ]
 
         # Clean up paths (remove file:// prefix if present)

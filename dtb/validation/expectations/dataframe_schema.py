@@ -26,7 +26,7 @@ class DataframeSchemaExpectation(Expectation):
                 - Set of missing columns
                 - Set of extra columns
         """
-        exclude_columns = ["_corrupt_record", "_source_file"]
+        exclude_columns = ["_corrupt_record", "_source_file", "_process_date"]
         source_columns = [c for c in df.columns if c not in exclude_columns]
         expected_columns = self.schema_version.to_struct_type().fieldNames()
         source_columns_set = set(source_columns)

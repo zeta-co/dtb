@@ -12,8 +12,12 @@ from ..common.processing_result_summary import ProcessingResultSummary
 from ...io.input import Input
 from ...io.output import Output
 from ...logging.log_context import LogContext
+from ...model.delta_table_config import DeltaTableConfig
+from ...model.delta_table_manager import DeltaTableManager
 from ...model.schema_registry import SchemaRegistry
+from ...model.table import Table
 from ...validation.check import Check
+from ...validation.check_log_entry import CheckLogEntry
 from ...validation.check_logger import CheckLogger
 from ...validation.check_processor import CheckProcessor
 from ...validation.expectations.dataframe_schema import DataframeSchemaExpectation
@@ -86,8 +90,8 @@ def single_batch(
         )
         logger.info(f"Initial DataFrame count: {df.count()}")
 
-        df = df.withColumn("_date", F.current_date()).withColumn(
-            "_file_path", F.input_file_name()
+        df = df.withColumn("_process_date", F.current_date()).withColumn(
+            "_source_file", F.input_file_name()
         )
 
         # Log check processing
@@ -100,7 +104,9 @@ def single_batch(
                 "Schema columns should match.",
             ),
         ]
-        result_df, check_log_entries = CheckProcessor().process_checks(df, checks)
+        result_df, check_log_entries = CheckProcessor().process_checks(
+            df, checks, batch_params[1].log_context
+        )
 
         # Log detailed check results
         logger.info(f"Check log entries: {check_log_entries}")
@@ -124,11 +130,27 @@ def single_batch(
         )
 
         # Save failures
-        failure_path = f"{output.metadata.path}_invalid"
-        logger.info(f"Saving failed records to: {failure_path}")
+        failure_table = f"{output.metadata.path}_invalid"
+        logger.info(f"Saving failed records to: {failure_table}")
+        config = DeltaTableConfig(
+        Table(failure_table),
+            ["_process_date", "_source_file"],
+            {
+                "delta.autoOptimize.optimizeWrite": "true",
+                "delta.autoOptimize.autoCompact": "true",
+                "delta.logRetentionDuration": "interval 90 days",
+                "delta.appendOnly": "true",
+                "delta.deletedFileRetentionDuration": "interval 7 days",
+                "delta.isolationLevel": "WriteSerializable",
+            },
+        )
+        try:
+            DeltaTableManager.create_if_not_exists(batch_params[1].spark, failures_df.schema, config)
+        except Exception as e:
+            pass
         failures_df.write.format("delta").option("mergeSchema", "true").option(
             "delta.isolationLevel", "WriteSerializable"
-        ).partitionBy("_date", "_file_path").mode("append").save(failure_path)
+        ).partitionBy("_process_date", "_source_file").mode("append").saveAsTable(failure_table)
 
         # Evaluate threshold
         success, failed_count = ThresholdEvaluator(input.metadata.threshold).apply(
@@ -184,6 +206,20 @@ def process_batches(
     logger.info(f"Using {max_workers} workers for parallel processing")
 
     all_results = []
+
+    config = DeltaTableConfig(
+        Table("lg.dtb_checks"),
+        ["JobName", "Date", "CheckId"],
+        {
+            "delta.autoOptimize.optimizeWrite": "true",
+            "delta.autoOptimize.autoCompact": "true",
+            "delta.logRetentionDuration": "interval 90 days",
+            "delta.appendOnly": "true",
+            "delta.deletedFileRetentionDuration": "interval 7 days",
+        },
+    )
+    schema = CheckLogEntry._target_schema
+    DeltaTableManager.create_if_not_exists(spark, schema, config)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_filter = {}

@@ -87,6 +87,9 @@ class ProcessingResultSummary:
                 
                 if failure["error_message"]:
                     summary_lines.append(f"    Error message: {failure['error_message']}")
+
+                if failure["error_traceback"]:
+                    summary_lines.append(f"    Error traceback: {failure['error_traceback']}")
                 
                 if failure["checks"]:
                     summary_lines.append("    Checks:")

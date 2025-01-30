@@ -41,7 +41,7 @@ class CheckProcessor:
         failed_checks = []
 
         for check in checks:
-            if self._is_schema_check(check):
+            if not self._is_schema_check(check):
                 failed_checks.append(
                     F.when(
                         ~F.col(check.expectation.flag_column),
